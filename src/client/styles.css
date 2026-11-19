@@ -1363,3 +1363,7 @@ fieldset.panel > legend + * {
   white-space: nowrap;
   letter-spacing: 0.03em;
 }
+
+.bill-total > span:first-child {
+  white-space: nowrap;
+}

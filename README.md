@@ -2,6 +2,10 @@
 
 A single web app that covers a hotel guest's whole stay without a login: **book a room → check in online → order services to the room → see a live bill → check out and download the invoice**. It ships with a demo hotel, *Saffron Bay Hotel & Spa* in Dubai, and every brand detail, price, tax and service comes from one config file, so it can be re-branded for another property.
 
+**Live demo:** https://white-label-hms.onrender.com (test card `4242 4242 4242 4242`, expiry `12/29`)
+
+**Documentation:** [docs/](docs/README.md): HLD, LLD, database schema, deployment, requirements, API, UI/UX, security, performance, testing, decision records, runbook, limitations and future scope, user guide with screenshots and a 5-minute demo script.
+
 ## The guest journey
 
 | Step | What the guest does | Where |
