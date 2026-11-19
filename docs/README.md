@@ -17,6 +17,6 @@ I wrote these documents for the white-label hotel guest platform in the order a 
 | 9 | [Performance and scalability](09-performance-scalability.md) | Targets, current limits, scaling path |
 | 10 | [Testing and test report](10-testing.md) | Strategy, test catalogue, automated and live results |
 | 11 | [Architecture decision records](11-decision-records.md) | My ten key decisions and their trade-offs |
-| 12 | [Runbook](12-runbook.md) | Demo preparation, everyday tasks, troubleshooting, logs |
+| 12 | [Runbook](12-runbook.md) | Live site checks, everyday tasks, troubleshooting, logs |
 | 13 | [Limitations and future scope](13-limitations-future-scope.md) | What the MVP doesn't do yet and my phased roadmap |
-| 14 | [User guide](14-user-guide.md) | Guest guide with screenshots, my 5-minute demo script, operator guide, FAQ |
+| 14 | [User guide](14-user-guide.md) | Guest guide with screenshots, operator guide, FAQ |

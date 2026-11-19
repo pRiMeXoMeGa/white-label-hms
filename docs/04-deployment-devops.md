@@ -64,7 +64,7 @@ I created the service through Render's Blueprint flow (New → Blueprint → thi
 
 | Behaviour | Effect on the demo | How I handle it |
 | --- | --- | --- |
-| Sleeps after 15 min without traffic; ~1 min to wake | First visitor waits | I open the link a minute before a demo |
+| Sleeps after 15 min without traffic; ~1 min to wake | First visitor waits | Noted at the top of the README so visitors expect the short wait |
 | No persistent disk | Database resets on restart or redeploy (re-seeded automatically) | Acceptable for a demo; real use needs a paid plan with a disk |
 | 512 MB RAM, 0.1 CPU | Enough for this app | A larger plan for real load |
 
@@ -108,7 +108,7 @@ All variables are optional; defaults are in [`src/server/config/env.ts`](../src/
 | `EARLY_CHECKIN_DAYS` | `0` | Online check-in opens N days before arrival |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Failed lookups allowed per IP per minute |
 
-Property-specific settings (brand, prices, taxes, catalogue) live in `config/hotel.json`, not in env vars; the [operator guide](14-user-guide.md#143-operator-guide) describes them.
+Property-specific settings (brand, prices, taxes, catalogue) live in `config/hotel.json`, not in env vars; the [operator guide](14-user-guide.md#142-operator-guide) describes them.
 
 ## 4.6 Observability
 

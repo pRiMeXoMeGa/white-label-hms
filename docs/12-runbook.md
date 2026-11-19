@@ -3,12 +3,11 @@
 How I run, operate and troubleshoot the app.
 **Live:** https://white-label-hms.onrender.com, **health check:** `/api/health`
 
-## 12.1 Demo preparation
+## 12.1 Live site checks
 
-1. I open the live URL about a minute before a demo. The free Render service sleeps after 15 minutes idle and takes up to a minute to wake.
-2. I check that `https://white-label-hms.onrender.com/api/health` returns `{"ok":true,...}`.
-3. Statuses move every 10 seconds on the live demo (`AUTO_ADVANCE_SECONDS=10`). The timer variables are under **Environment** in Render; saving a change there triggers a redeploy (about 2–4 minutes), which also resets the data.
-4. I present from my [demo script](14-user-guide.md#142-five-minute-demo-script).
+1. The free Render service sleeps after 15 minutes idle and takes up to a minute to wake on the next visit.
+2. `https://white-label-hms.onrender.com/api/health` returns `{"ok":true,...}` when the service is up.
+3. Statuses move every 10 seconds on the live site (`AUTO_ADVANCE_SECONDS=10`). The timer variables are under **Environment** in Render; saving a change there triggers a redeploy (about 2–4 minutes), which also resets the data.
 
 ## 12.2 Everyday tasks
 

@@ -3,7 +3,7 @@
 **Live app:** https://white-label-hms.onrender.com
 **Test card:** `4242 4242 4242 4242`, expiry `12/29`, security code `123` (no money is taken)
 
-Contents: [14.1 Guest guide](#141-guest-guide), [14.2 Five-minute demo script](#142-five-minute-demo-script), [14.3 Operator guide](#143-operator-guide), [14.4 FAQ](#144-faq-and-troubleshooting)
+Contents: [14.1 Guest guide](#141-guest-guide), [14.2 Operator guide](#142-operator-guide), [14.3 FAQ](#143-faq-and-troubleshooting)
 
 The demo hotel, Saffron Bay Hotel & Spa, is fictional. On the free hosting plan the site sleeps when unused, so the first visit can take up to a minute, and the data resets when the service restarts.
 
@@ -106,29 +106,7 @@ The thank-you page shows the total paid and the invoice number. **Download invoi
 
 ---
 
-## 14.2 Five-minute demo script
-
-The script I use to present the app. Before a demo I open the link a minute early so the free server is awake. On the live demo each status moves on after 10 seconds.
-
-| Time | What I do | What I point out |
-| --- | --- | --- |
-| 0:00 | Open the home page | The whole brand (name, colours, illustrations) comes from one config file |
-| 0:20 | **Check availability** for today, 2 nights | Live availability per room type, weekend pricing, taxes stated up front |
-| 0:50 | **Select** a room, fill in details and the test card, **Confirm booking** | Only the card brand and last 4 digits are stored; double booking is impossible at the database level |
-| 1:30 | **Check in online** with a nationality and any document number | Room number and Stay ID; no account or password anywhere |
-| 2:00 | **Open my stay**, on my phone through **Copy link** | Mobile-first app and the key card |
-| 2:20 | **In-room dining**: add 2–3 items, **Place order**, back to Home | Cart, order status starting at "received" |
-| 2:50 | **Spa**: a treatment and a time | Slots respect opening hours, 60-minute notice and 3 treatment rooms |
-| 3:20 | **Airport transfer**: 5 passengers in a sedan, then a bigger car | Clear validation messages |
-| 3:40 | Back to **Home** | Statuses have moved on by themselves, every 10 seconds (timer from env) |
-| 4:00 | **Bill** | Every line and every tax, computed on the server, VAT on top of service charge |
-| 4:20 | **Check out** with the card on file | Early-departure night and future spa refunded automatically; append-only bill |
-| 4:45 | **Download invoice (PDF)**, rate 5 | Frozen invoice; the room goes back on sale |
-| 5:00 | The README and the [docs](README.md) | HLD, LLD, schema, decision records, tests |
-
----
-
-## 14.3 Operator guide
+## 14.2 Operator guide
 
 ### Branding and prices
 
@@ -174,7 +152,7 @@ The [runbook](12-runbook.md) covers the remaining operational tasks.
 
 ---
 
-## 14.4 FAQ and troubleshooting
+## 14.3 FAQ and troubleshooting
 
 | Question | Answer |
 | --- | --- |

@@ -100,7 +100,7 @@ flowchart LR
   J --> API["GET /api/hotel<br/>name, contacts, policies"] --> P
 ```
 
-I inject the colours **server-side** into the page head, so there is no flash of the default theme on load. Changing the brand means editing one JSON block, as described in the [operator guide](14-user-guide.md#143-operator-guide).
+I inject the colours **server-side** into the page head, so there is no flash of the default theme on load. Changing the brand means editing one JSON block, as described in the [operator guide](14-user-guide.md#142-operator-guide).
 
 ## 7.6 Interaction patterns
 

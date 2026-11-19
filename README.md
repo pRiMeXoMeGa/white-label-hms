@@ -6,7 +6,6 @@ I built a single web app that covers a hotel guest's whole stay without a login:
 | --- | --- |
 | **Live demo** | https://white-label-hms.onrender.com (test card `4242 4242 4242 4242`, expiry `12/29`, CVC `123`) |
 | **User guide** | [Step-by-step walkthrough with screenshots](docs/14-user-guide.md#141-guest-guide) |
-| **Demo script** | [The 5-minute tour I use to present the app](docs/14-user-guide.md#142-five-minute-demo-script) |
 | **Documentation** | [All 14 design and project documents](docs/README.md) |
 
 The demo runs on a free hosting plan: after 15 minutes without visitors the server sleeps, and the first visit takes up to a minute while it wakes.
@@ -25,7 +24,7 @@ My design and project documentation is in [`docs/`](docs/README.md):
 | 4 | [Deployment and DevOps](docs/04-deployment-devops.md) | 11 | [Architecture decision records](docs/11-decision-records.md) |
 | 5 | [Requirements](docs/05-requirements.md) | 12 | [Runbook](docs/12-runbook.md) |
 | 6 | [API specification](docs/06-api-specification.md) | 13 | [Limitations and future scope](docs/13-limitations-future-scope.md) |
-| 7 | [UI/UX design](docs/07-ui-ux-design.md) | 14 | [User guide and demo script](docs/14-user-guide.md) |
+| 7 | [UI/UX design](docs/07-ui-ux-design.md) | 14 | [User guide](docs/14-user-guide.md) |
 
 
 ## The guest journey
@@ -77,7 +76,7 @@ Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_
 
 ### White-label config
 
-[`config/hotel.json`](config/hotel.json) holds everything that is specific to a property: brand name and colours, contact details, check-in and check-out times, weekend pricing, the tax rules, Wi-Fi, opening hours, house rules, the local guide, room types and room numbers, the dining menu, laundry price list, amenities, housekeeping options, maintenance categories, spa treatments and opening hours, and transfer airports and car prices. It is validated with Zod at start-up, so a typo fails fast with a clear message. `HOTEL_CONFIG_PATH` pointing at another file runs a different hotel; the brand colours are injected into the page server-side, and the illustrations are drawn in code from those colours. The [operator guide](docs/14-user-guide.md#143-operator-guide) describes every section.
+[`config/hotel.json`](config/hotel.json) holds everything that is specific to a property: brand name and colours, contact details, check-in and check-out times, weekend pricing, the tax rules, Wi-Fi, opening hours, house rules, the local guide, room types and room numbers, the dining menu, laundry price list, amenities, housekeeping options, maintenance categories, spa treatments and opening hours, and transfer airports and car prices. It is validated with Zod at start-up, so a typo fails fast with a clear message. `HOTEL_CONFIG_PATH` pointing at another file runs a different hotel; the brand colours are injected into the page server-side, and the illustrations are drawn in code from those colours. The [operator guide](docs/14-user-guide.md#142-operator-guide) describes every section.
 
 ## Architecture
 
