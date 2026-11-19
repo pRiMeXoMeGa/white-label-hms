@@ -7,7 +7,7 @@ Practical tasks for running the demo and the service.
 
 1. Open the live URL about a minute early. The free Render service sleeps after 15 minutes idle and takes up to a minute to wake.
 2. Check `https://white-label-hms.onrender.com/api/health` returns `{"ok":true,...}`.
-3. Optional: in Render → **Environment**, set `AUTO_ADVANCE_SECONDS=20` so statuses move faster while you present. Saving triggers a redeploy (about 2–4 minutes), which also resets the data.
+3. Statuses move every 10 seconds on the live demo (`AUTO_ADVANCE_SECONDS=10`). To change the speed, edit the timer variables in Render → **Environment**; saving triggers a redeploy (about 2–4 minutes), which also resets the data.
 4. Keep the [demo script](14-user-guide.md#142-five-minute-demo-script) open.
 
 ## 12.2 Common tasks

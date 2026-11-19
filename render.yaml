@@ -10,12 +10,16 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Every request moves to its next status after 10 seconds.
       - key: AUTO_ADVANCE_SECONDS
-        value: "45"
+        value: "10"
       - key: AUTO_ADVANCE_SECONDS_FOOD
-        value: "60"
+        value: "10"
       - key: AUTO_ADVANCE_SECONDS_LAUNDRY
-        value: "90"
+        value: "10"
+      # Check for due requests every 2 s so a 10 s timer is never late by more than 2 s.
+      - key: AUTO_ADVANCE_TICK_SECONDS
+        value: "2"
       - key: EARLY_CHECKIN_DAYS
         value: "0"
     # disk:

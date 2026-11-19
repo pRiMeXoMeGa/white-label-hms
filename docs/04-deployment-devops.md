@@ -53,7 +53,7 @@ Commands:
 | Plan | Free |
 | Health check | `GET /api/health` (must return 2xx before traffic switches) |
 | Auto-deploy | On every push to `main` |
-| Env vars | `NODE_ENV=production`, `AUTO_ADVANCE_SECONDS=45`, `AUTO_ADVANCE_SECONDS_FOOD=60`, `AUTO_ADVANCE_SECONDS_LAUNDRY=90`, `EARLY_CHECKIN_DAYS=0` |
+| Env vars | `NODE_ENV=production`, `AUTO_ADVANCE_SECONDS=10` (and `_FOOD`, `_LAUNDRY` = 10), `AUTO_ADVANCE_TICK_SECONDS=2`, `EARLY_CHECKIN_DAYS=0` |
 | TLS | Managed by Render (`https://white-label-hms.onrender.com`) |
 
 **First deploy:** Render dashboard → New → Blueprint → select the repo → Apply.

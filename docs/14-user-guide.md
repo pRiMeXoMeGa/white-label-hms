@@ -106,7 +106,7 @@ You then see the total paid and your invoice number. Select **Download invoice (
 
 ## 14.2 Five-minute demo script
 
-For showing the app to a reviewer. Open the link a minute before; set `AUTO_ADVANCE_SECONDS=20` in Render beforehand if you want statuses to move faster.
+For showing the app to a reviewer. Open the link a minute before. On the live demo each status moves on after 10 seconds.
 
 | Time | Do | Point out |
 | --- | --- | --- |
@@ -118,7 +118,7 @@ For showing the app to a reviewer. Open the link a minute before; set `AUTO_ADVA
 | 2:20 | **In-room dining** → add 2–3 items → **Place order** → back to Home | Cart, order status starts at "received" |
 | 2:50 | **Spa** → pick a treatment and a time | Slots respect opening hours, 60-min notice and 3 treatment rooms |
 | 3:20 | **Airport transfer** → try 5 passengers in a sedan, then fix it | Clear validation messages |
-| 3:40 | Back to **Home** | Statuses have moved on by themselves (timer from env) |
+| 3:40 | Back to **Home** | Statuses have moved on by themselves, every 10 seconds (timer from env) |
 | 4:00 | **Bill** | Every line and every tax, computed on the server, VAT on top of service charge |
 | 4:20 | **Check out** → card on file → **Pay and check out** | Early-departure night and future spa refunded automatically; append-only bill |
 | 4:45 | **Download invoice (PDF)**, rate 5 | Frozen invoice; the room goes back on sale |
