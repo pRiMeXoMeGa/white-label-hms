@@ -129,7 +129,11 @@ Colours are injected **server-side** into the page head, so there is no flash of
 | ≥ 900 px | Two-column booking and confirmation (form + summary) |
 | ≤ 900 px | Booking and confirmation stack into one column |
 | ≤ 820 px | Hero illustration hidden; search fields and journey steps in 2 columns |
+| ≤ 680 px | Header becomes two rows: hotel name, then the menu as one swipeable line |
 | ≤ 520 px | Phone layout for the search form; the in-stay app is always max 520 px wide with a fixed tab bar |
+| ≤ 400 px | Dates on their own rows; service tiles in 2 columns; totals shrink to fit |
+
+Checked automatically at 320, 375, 390, 430, 768, 1024, 1366 and 1920 px wide (`npm run e2e:responsive`).
 
 - All inputs have visible labels; groups use `fieldset`/`legend`.
 - Visible focus ring (`3px` accent outline) on every interactive element.

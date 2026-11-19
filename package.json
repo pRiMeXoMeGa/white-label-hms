@@ -14,7 +14,8 @@
     "test": "node --disable-warning=ExperimentalWarning --import tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "seed:reset": "RESET_DB_ON_START=true node --disable-warning=ExperimentalWarning --import tsx src/server/db/reset.ts",
-    "e2e": "node tests/e2e/journey.mjs"
+    "e2e": "node tests/e2e/journey.mjs",
+    "e2e:responsive": "node tests/e2e/responsive.mjs"
   },
   "dependencies": {
     "pdf-lib": "^1.17.1",

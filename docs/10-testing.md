@@ -16,6 +16,7 @@ flowchart TB
 | Unit | `node:test` + `assert` | Pure rules: taxes, rounding, Luhn | `npm test`, CI, Docker build |
 | Integration | `node:test` + in-memory SQLite + `FixedClock` | Business rules end to end through the modules and the real schema, constraints and triggers | `npm test`, CI, Docker build |
 | End to end | Playwright (`tests/e2e/journey.mjs`) | The built app works in a browser: every screen, no console errors, PDF downloads | `npm run e2e`, CI |
+| Responsive | Playwright (`tests/e2e/responsive.mjs`) | 12 pages × 8 screen sizes (320 px to 1920 px): no sideways scrolling, no controls under 32 px tall | `npm run e2e:responsive`, CI |
 | Live smoke test | Claude in Chrome against the deployed site | Production build and hosting behave like local | Manual, after deploys |
 | Type checking | `tsc --noEmit` (strict) | API types shared by client and server stay in sync | `npm run typecheck`, CI |
 
@@ -61,6 +62,7 @@ The run fails on any browser console error. Screenshots are saved to `test-resul
 | `npm test` | **20 / 20 passed** (~1 s) |
 | Server and test type checking | Passed |
 | Browser journey against the production build | **Passed**, 0 console errors, PDF valid |
+| Responsive check, 96 page/size combinations | **Passed** after fixing 5 overflows on 320–375 px phones (search form, service tiles, bill and check-out totals) and the phone header |
 
 ### Live site (https://white-label-hms.onrender.com, 19 November 2026)
 
