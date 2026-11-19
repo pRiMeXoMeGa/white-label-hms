@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ServiceRequestDto } from '../../../shared/types';
 import { Icon, type IconName } from '../../components/Icons';
 import { ApiError, post } from '../../lib/api';
@@ -16,9 +16,12 @@ const ICONS: Record<ServiceRequestDto['service'], IconName> = {
   transfer: 'transfer',
 };
 
-export function RequestCard({ r, onChange }: { r: ServiceRequestDto; onChange: () => void }) {
+export function RequestCard({ r: initial, onChange }: { r: ServiceRequestDto; onChange: () => void }) {
   const hotel = useHotel();
   const { code } = useStay();
+  // Local copy so the card updates straight after a cancel, even where the parent does not refetch.
+  const [r, setR] = useState(initial);
+  useEffect(() => setR(initial), [initial]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const IconC = Icon[ICONS[r.service]];
@@ -28,7 +31,7 @@ export function RequestCard({ r, onChange }: { r: ServiceRequestDto; onChange: (
     setBusy(true);
     setError(null);
     try {
-      await post(`/stays/${code}/requests/${r.id}/cancel`);
+      setR(await post<ServiceRequestDto>(`/stays/${code}/requests/${r.id}/cancel`));
       onChange();
     } catch (e) {
       setError((e as ApiError).message);
