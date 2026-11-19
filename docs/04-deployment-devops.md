@@ -110,7 +110,7 @@ All variables are optional; defaults are in [`src/server/config/env.ts`](../src/
 | `HOUSEKEEPING_TURNAROUND_SECONDS` | `300` | Dirty room becomes clean after this |
 | `EARLY_CHECKIN_DAYS` | `0` | Online check-in opens N days before arrival |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Failed lookups (a booking reference or Stay ID that does not exist) allowed per client address per minute; the general budget is 10 times this, at least 300, per Stay ID or address |
-| `TRUST_PROXY_HOPS` | `1` | How many proxies in front of the app add to `X-Forwarded-For` (Render: 1); `0` uses the socket address |
+| `TRUST_PROXY_HOPS` | `2` on Render, otherwise `1` | How many proxies in front of the app add to `X-Forwarded-For` (Render: Cloudflare and Render's proxy, so 2; the app detects Render from its `RENDER=true` variable); `0` uses the socket address |
 | `KEEP_ALIVE_URL` | `RENDER_EXTERNAL_URL` | Public URL the app pings to stay awake (Render sets `RENDER_EXTERNAL_URL` automatically) |
 | `KEEP_ALIVE_MINUTES` | `10` | Minutes between keep-awake pings; `0` turns it off (only active when `NODE_ENV=production`) |
 

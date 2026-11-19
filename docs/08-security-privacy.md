@@ -34,7 +34,7 @@ flowchart LR
 
 **Brute-force protection:** a lookup of a booking reference or Stay ID that does not exist (`404` on `/reservations/:code`, `/check-in` or `/stays/...`) counts as a failed lookup for the client address. Other errors, such as a wrong date, do not count. After `RATE_LIMIT_PER_MINUTE` (30) failures in a minute, those endpoints return `429` with `Retry-After` for that address until the window ends. A code that resolved successfully in the last 24 hours keeps working, so a guest is not locked out by someone else on the same network.
 
-**Client address:** the app runs behind Render's proxy, so the address comes from `X-Forwarded-For`. I take the entry `TRUST_PROXY_HOPS` (1) from the right, which is the one Render's proxy added; entries a client writes into the header itself sit further left and are ignored.
+**Client address:** on Render a request passes Cloudflare and then Render's own proxy, and each appends to `X-Forwarded-For`, so the header ends with `client, cloudflare`. I take the entry `TRUST_PROXY_HOPS` from the right: 2 when Render's `RENDER=true` variable is present, 1 elsewhere (one proxy in front). That is the address Cloudflare saw; entries a client writes into the header itself sit further left and are ignored.
 
 **General budget:** 10 × `RATE_LIMIT_PER_MINUTE` calls a minute, at least 300, counted per Stay ID for `/stays/...` (so guests sharing hotel Wi-Fi do not share one budget) and per client address for everything else. The limiter holds at most 50 000 keys and drops expired and then the oldest windows first, so made-up keys cannot grow memory without limit.
 

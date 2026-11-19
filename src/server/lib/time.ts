@@ -27,9 +27,12 @@ export const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** "Wed 25 Nov 2026", for messages shown to guests. */
 export function humanDate(date: string): string {
-  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
-    new Date(`${date}T12:00:00Z`),
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+      .formatToParts(new Date(`${date}T12:00:00Z`))
+      .map((p) => [p.type, p.value]),
   );
+  return `${parts.weekday} ${parts.day} ${parts.month} ${parts.year}`;
 }
 const LOCAL_DT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 

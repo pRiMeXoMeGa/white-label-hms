@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import type { IncomingMessage } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
+import { loadConfig } from '../src/server/config/env';
 import { parse } from '../src/server/http/router';
 import { clientIp, createHttpServer } from '../src/server/http/server';
 import { isCardExpiryValid, percentOf } from '../src/server/lib/money';
@@ -44,6 +45,11 @@ test('client address is read from the right of X-Forwarded-For, as many hops as 
   assert.equal(clientIp(req('1.1.1.1, 2.2.2.2'), 2), '1.1.1.1');
   assert.equal(clientIp(req('1.1.1.1'), 0), '10.0.0.9', 'no trusted proxy: the socket address');
   assert.equal(clientIp(req(), 1), '10.0.0.9');
+  // Render: Cloudflare, then Render's proxy, so the header ends "client, cloudflare".
+  assert.equal(loadConfig({ RENDER: 'true' }).trustProxyHops, 2);
+  assert.equal(loadConfig({}).trustProxyHops, 1);
+  assert.equal(loadConfig({ RENDER: 'true', TRUST_PROXY_HOPS: '1' }).trustProxyHops, 1);
+  assert.equal(clientIp(req('6.6.6.6, 81.2.3.4, 104.22.17.40'), 2), '81.2.3.4');
 });
 
 test('only failed lookups count toward the lookup block, and known Stay IDs keep working', async () => {

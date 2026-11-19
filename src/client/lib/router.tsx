@@ -19,13 +19,30 @@ export function navigate(to: string, opts: { replace?: boolean } = {}) {
   else window.history.pushState(null, '', to);
   window.scrollTo(0, 0);
   emit();
-  // Move keyboard and screen-reader focus to the new page's heading once it has rendered.
-  window.setTimeout(() => {
-    const target = document.querySelector<HTMLElement>('h1') ?? document.querySelector<HTMLElement>('main, .app');
+  focusHeading();
+}
+
+/**
+ * Moves keyboard and screen-reader focus to the new page's heading. Pages that load data
+ * render their heading a moment later, so this waits up to 3 seconds for it to appear,
+ * and gives up if the guest has moved focus somewhere themselves in the meantime.
+ */
+function focusHeading() {
+  const started = Date.now();
+  const startFocus = document.activeElement;
+  const attempt = () => {
+    if (document.activeElement !== startFocus && document.activeElement !== document.body) return;
+    const heading = document.querySelector<HTMLElement>('h1');
+    if (!heading && Date.now() - started < 3000) {
+      window.setTimeout(attempt, 100);
+      return;
+    }
+    const target = heading ?? document.querySelector<HTMLElement>('main, .app');
     if (!target) return;
     if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
     target.focus({ preventScroll: true });
-  }, 50);
+  };
+  window.setTimeout(attempt, 50);
 }
 
 export function useLocation() {

@@ -49,7 +49,7 @@ flowchart TB
 | 19 | rounding happens once per tax, half away from zero | Money rounding |
 | 20 | card numbers are Luhn-checked | Card validation |
 | 21 | a malformed address gets a 400 and the server keeps answering | `/api/stays/%E0%A4%A` → 400, health still 200, `text/plain` body → 415 |
-| 22 | client address is read from the right of X-Forwarded-For, as many hops as trusted | Spoofed entries ignored, `TRUST_PROXY_HOPS` 0/1/2 |
+| 22 | client address is read from the right of X-Forwarded-For, as many hops as trusted | Spoofed entries ignored, `TRUST_PROXY_HOPS` 0/1/2, default 2 on Render |
 | 23 | only failed lookups count toward the lookup block, and known Stay IDs keep working | 3 unknown IDs → 4th answers 429; the guest's own Stay ID still 200 |
 | 24 | per-item quantity is capped after duplicate lines are merged | 15 + 10 refused, 10 + 10 accepted |
 | 25 | body rules: real numbers, real clock times, no expired cards, blank optional fields ignored | `"2"` refused for a number, `25:00` refused, expired card refused, `""` arrival time ignored |
@@ -130,6 +130,47 @@ I repeated every feature on the live site with booking SB-CC9FJ4, using the 10-s
 | After cancelling from an order's confirmation screen, the card still showed the old status and a Cancel button | The card updates from the cancel response straight away |
 | Future spa and transfer bookings sat under "In progress" until their booked time, which looked like a stuck timer | They are listed under a separate **Upcoming** section with a static progress bar |
 | House rules mentioned asking "in the app" for a late check-out, which the app does not offer | The rule now refers to reception |
+
+### Live retest after the review fixes (19 November 2026)
+
+I repeated every scenario in Chrome on the live site with booking SB-2885YS (Deluxe King, 3 nights, checked out after the first).
+
+| Check | Result |
+| --- | --- |
+| New version live: HSTS and CSP headers, `415` for `text/plain` and `application/jsonx`, `HEAD` and trailing slash answered, no source map served | Pass |
+| Malformed addresses (`%FF`, `%E0%A4`) answer `400` and the service keeps running | Pass |
+| Clearing the check-in date leaves the search form working; picking a later check-in moves check-out | Pass |
+| A booking link for Deluxe King with 4 adults shows "does not fit" instead of the form | Pass |
+| Booking button "Confirm booking, AED 2,210.00 before taxes"; booking confirmed | Pass |
+| Confirmation before check-in opens: button disabled, opening date shown | Pass |
+| Manage booking: wrong last name refused, `KHAN` and `khan` accepted | Pass |
+| Arrival time `25:00` refused by the API; check-in with no arrival time and a lower-case name → room 101 and a Stay ID | Pass |
+| Unknown Stay ID message; `/stay/` reopens the remembered stay | Pass |
+| API refuses 15 + 10 of one item, `"2"` as a quantity, `9:5` as a pickup time, a laundry item on the food menu and an unknown issue category | Pass |
+| Dining (AED 114): the card after ordering moved to "Kitchen is preparing" by itself; one live region announced it; Services tab highlighted | Pass |
+| Laundry pickup times offered from 12:00 at 11:01; express laundry (AED 60) cancelled and stayed cancelled through later polls | Pass |
+| Housekeeping, amenities and an urgent air-conditioning report placed and completed | Pass |
+| Spa: today's slots start 60 minutes ahead; on the check-out day only 10:00–11:00 starts are offered and 11:30 is refused by the API; cancel asks "Cancel this booking?" and **Keep it** keeps the booking | Pass |
+| Transfers: 5 passengers in a sedan disables the button; an airport pick-up on the check-out day and a pick-up 90 minutes ahead are refused; drop-offs today and on the check-out day booked; a pick-up on Fri 20 cancelled through **Yes, cancel** | Pass |
+| Home lists the spa treatment and both drop-offs under Upcoming, with "Nothing in progress right now. Your upcoming bookings are listed below." | Pass |
+| Bill AED 3,835.58, every tax checked by hand | Pass |
+| Check-out page: 2 unused nights from Fri 20 Nov, the spa treatment and the later drop-off listed; "Pay AED 1,321.18 and check out"; calling the preview twice changed nothing | Pass |
+| Check-out charged exactly AED 1,321.18; invoice SB-INV-2026-00001; PDF downloads; today's drop-off kept, later bookings cancelled | Pass |
+| Booking shortened to 19–20 Nov, 1 night, AED 780; Deluxe King back to 6 free rooms for 20–22 Nov | Pass |
+| After check-out: orders, Wi-Fi, preview and a second check-out answer `409 stay_closed`; feedback once, then `409 feedback_exists` | Pass |
+| Manage booking after check-out shows **View invoice** | Pass |
+| No browser console errors | Pass |
+
+**Defects I found and fixed in this retest**
+
+| Defect | Fix |
+| --- | --- |
+| 31 lookups of unknown Stay IDs in a minute were never blocked on Render: its `X-Forwarded-For` ends with a Cloudflare address that changes between requests, so every request counted under a different key | On Render (`RENDER=true`) the app trusts two hops and reads the address Cloudflare saw; `TRUST_PROXY_HOPS` still overrides it (test 22) |
+| Focus went to the page container instead of the heading on pages that load data first | Focus waits up to 3 seconds for the heading |
+| Dates in messages read "Sun, 22 Nov 2026" | "Sun 22 Nov 2026" |
+| **View invoice** and **Look up another booking** touched each other on Manage booking | Placed in a spaced row |
+
+One malformed address, `%E0%A4%A`, is answered by Render's edge with `520` before it reaches the app; similar addresses reach the app and get its `400`.
 
 ### Full project review (19 November 2026)
 

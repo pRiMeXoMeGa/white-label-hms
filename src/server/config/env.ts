@@ -40,7 +40,7 @@ const EnvSchema = z.object({
   EARLY_CHECKIN_DAYS: z.coerce.number().int().min(0).max(30).default(0),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(30),
   // Number of proxies in front of the app that append to X-Forwarded-For (Render: 1). 0 = use the socket address.
-  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).optional(),
 
   // Keep-awake: free hosts (Render) stop an idle service after 15 minutes, which wipes an
   // on-container SQLite file. The app requests its own public URL on an interval so it never idles.
@@ -103,7 +103,9 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     housekeepingTurnaroundSeconds: e.HOUSEKEEPING_TURNAROUND_SECONDS,
     earlyCheckinDays: e.EARLY_CHECKIN_DAYS,
     rateLimitPerMinute: e.RATE_LIMIT_PER_MINUTE,
-    trustProxyHops: e.TRUST_PROXY_HOPS,
+    // Render puts Cloudflare in front of its own proxy, so X-Forwarded-For ends "client, cloudflare":
+    // two trusted hops there (Render sets RENDER=true), one behind a single proxy elsewhere.
+    trustProxyHops: e.TRUST_PROXY_HOPS ?? (source.RENDER === 'true' ? 2 : 1),
     keepAlive: { url: e.KEEP_ALIVE_URL ?? e.RENDER_EXTERNAL_URL ?? null, minutes: e.KEEP_ALIVE_MINUTES },
   };
 }

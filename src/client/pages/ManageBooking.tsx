@@ -130,20 +130,22 @@ export function ManageBooking() {
               )}
             </>
           )}
-          {booking.status === 'checked_in' && booking.stayCode && (
-            <Link className="btn btn-accent" href={`/stay/${booking.stayCode}`}>
-              Open my stay
-            </Link>
-          )}
-          {booking.status === 'checked_out' && booking.stayCode && (
-            <Link className="btn btn-ghost" href={`/stay/${booking.stayCode}/thanks`}>
-              View invoice
-            </Link>
-          )}
           {booking.status === 'cancelled' && <Notice>This booking is cancelled. Nothing will be charged.</Notice>}
-          <button className="btn-link" onClick={() => setBooking(null)}>
-            Look up another booking
-          </button>
+          <div className="row">
+            {booking.status === 'checked_in' && booking.stayCode && (
+              <Link className="btn btn-accent" href={`/stay/${booking.stayCode}`}>
+                Open my stay
+              </Link>
+            )}
+            {booking.status === 'checked_out' && booking.stayCode && (
+              <Link className="btn btn-ghost" href={`/stay/${booking.stayCode}/thanks`}>
+                View invoice
+              </Link>
+            )}
+            <button className="btn-link" onClick={() => setBooking(null)}>
+              Look up another booking
+            </button>
+          </div>
         </section>
       )}
     </div>
