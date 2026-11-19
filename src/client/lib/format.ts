@@ -38,6 +38,21 @@ export function timeOf(isoUtc: string, timeZone: string): string {
   return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone }).format(new Date(isoUtc));
 }
 
+/** Current hotel-local wall-clock time as YYYY-MM-DDTHH:mm (same format as spa and transfer times). */
+export function hotelNowLocal(timeZone: string): string {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  );
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+/** A spa or transfer booking whose booked time has not started yet. */
+export function isUpcoming(r: { scheduledAt: string | null; isFinal: boolean; isCancelled: boolean }, timeZone: string): boolean {
+  return Boolean(r.scheduledAt) && !r.isFinal && !r.isCancelled && r.scheduledAt! > hotelNowLocal(timeZone);
+}
+
 export function addDays(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);

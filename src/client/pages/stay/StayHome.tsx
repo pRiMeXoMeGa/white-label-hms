@@ -2,7 +2,7 @@ import type { ServiceRequestDto } from '../../../shared/types';
 import { Icon, type IconName } from '../../components/Icons';
 import { Spinner, gap } from '../../components/ui';
 import { useApi } from '../../lib/api';
-import { money, shortDate } from '../../lib/format';
+import { isUpcoming, money, shortDate } from '../../lib/format';
 import { useHotel } from '../../lib/hotel';
 import { Link } from '../../lib/router';
 import { RequestCard } from './RequestCard';
@@ -23,7 +23,9 @@ export function StayHome() {
   const hotel = useHotel();
   const { stay, code, base } = useStay();
   const requests = useApi<ServiceRequestDto[]>(`/stays/${code}/requests`, 4000);
-  const active = requests.data?.filter((r) => !r.isFinal) ?? [];
+  const open = requests.data?.filter((r) => !r.isFinal) ?? [];
+  const upcoming = open.filter((r) => isUpcoming(r, hotel.timezone)).sort((a, b) => a.scheduledAt!.localeCompare(b.scheduledAt!));
+  const active = open.filter((r) => !isUpcoming(r, hotel.timezone));
   const leavingToday = hotel.today >= stay.checkOut;
 
   return (
@@ -84,13 +86,27 @@ export function StayHome() {
         {requests.loading && <Spinner />}
         {requests.data && active.length === 0 && (
           <p className="muted small" style={{ margin: 0 }}>
-            Nothing in progress. Your orders and bookings will show here with live status.
+            Nothing in progress. Your orders and requests will show here with live status.
           </p>
         )}
         {active.map((r) => (
           <RequestCard key={r.id} r={r} onChange={requests.reload} />
         ))}
       </section>
+
+      {upcoming.length > 0 && (
+        <section className="stack" aria-labelledby="upcoming-title" style={gap('0.6rem')}>
+          <h2 id="upcoming-title" style={{ fontSize: 'var(--step-1)', margin: 0 }}>
+            Upcoming
+          </h2>
+          <p className="muted small" style={{ margin: 0 }}>
+            Spa treatments and transfers are marked completed once their booked time has passed.
+          </p>
+          {upcoming.map((r) => (
+            <RequestCard key={r.id} r={r} onChange={requests.reload} />
+          ))}
+        </section>
+      )}
 
       <section className="panel stack" style={gap('0.75rem')}>
         <div className="bill-total">

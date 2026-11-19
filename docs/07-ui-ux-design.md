@@ -61,7 +61,7 @@ flowchart TB
 | Confirmation | Hand over the reference | Large reference, check-in status, next actions | Opened without session data → link to Manage booking |
 | Manage booking | Self-service | Lookup form; booking card with status tag; cancel with inline confirmation; Stay ID recovery | Not found, cancelled, checked in |
 | Online check-in | Register and get the room | Lookup + ID fieldsets; result shows the **key card** | Too early, already checked in, ended |
-| Stay home | Hub of the stay | Key card (room number, Stay ID, check-out), 6 quick tiles, in-progress requests, current bill, check-out | Nothing in progress (empty state), checked out (redirect) |
+| Stay home | Hub of the stay | Key card (room number, Stay ID, check-out), 6 quick tiles, in-progress requests, upcoming spa and transfer bookings (static progress bar until their booked time), current bill, check-out | Nothing in progress (empty state), checked out (redirect) |
 | Dining / Laundry | Order with a cart | Section chips, item rows with quantity steppers, pinned cart bar with total | Empty cart, order placed (status card) |
 | Housekeeping / Amenities | Free requests | Grouped items with steppers, notes, send button | Nothing selected |
 | Report an issue | Get something fixed | Category radio cards, description, urgent | Sent (status card) |

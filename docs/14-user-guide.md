@@ -51,14 +51,14 @@ The result shows the **room number** and the **Stay ID** (for example `SX2H-KXCU
 
 ### Step 5: The in-stay app
 
-The in-stay app is built for phones. The **Home** tab shows the room, Stay ID and check-out date, quick buttons for the most used services, everything **in progress** with live status, and the **current bill**. The tab bar switches between Home, Services, Bill and Hotel info.
+The in-stay app is built for phones. The **Home** tab shows the room, Stay ID and check-out date, quick buttons for the most used services, everything **in progress** with live status, **upcoming** spa and transfer bookings, and the **current bill**. The tab bar switches between Home, Services, Bill and Hotel info.
 
 <p>
 <img src="images/stay-home.png" alt="In-stay home with the room key card and service buttons" width="260">
 <img src="images/requests-in-progress.png" alt="An order in progress on the home screen" width="260">
 </p>
 
-Every order or booking shows a progress bar and its current status. In this demo each status moves on after about 10 seconds, and the screen updates by itself. A request can be cancelled until staff start on it (spa up to 60 minutes before, transfers up to 2 hours before); any charge is removed from the bill.
+Every order or booking shows a progress bar and its current status. In this demo each status moves on after about 10 seconds, and the screen updates by itself. Spa treatments and airport transfers are confirmed within seconds but listed under **Upcoming** until their booked time; they are marked completed once that time has passed. A request can be cancelled until staff start on it (spa up to 60 minutes before, transfers up to 2 hours before); any charge is removed from the bill.
 
 | Service | How it works | Cost |
 | --- | --- | --- |

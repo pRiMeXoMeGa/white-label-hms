@@ -85,7 +85,7 @@ I wrote these stories before building and used the acceptance criteria as my tes
 
 **US-11 Hotel info**: Checked-in guests see the Wi-Fi network and password (with a copy button), opening hours, house rules, a local guide with distances, and reception contacts.
 
-**US-12 Request status**: Every request shows its current status, a progress bar and when it was requested. Requests can be cancelled before work starts; the charge is reversed on the bill.
+**US-12 Request status**: Every request shows its current status, a progress bar and when it was requested. Confirmed spa and transfer bookings appear under Upcoming until their booked time. Requests can be cancelled before work starts; the charge is reversed on the bill.
 
 ### Billing and check-out
 

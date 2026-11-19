@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ServiceRequestDto } from '../../../shared/types';
 import { Icon, type IconName } from '../../components/Icons';
 import { ApiError, post } from '../../lib/api';
-import { localDateTime, money, timeOf } from '../../lib/format';
+import { isUpcoming, localDateTime, money, timeOf } from '../../lib/format';
 import { useHotel } from '../../lib/hotel';
 import { useStay } from './StayApp';
 
@@ -26,6 +26,8 @@ export function RequestCard({ r: initial, onChange }: { r: ServiceRequestDto; on
   const [error, setError] = useState<string | null>(null);
   const IconC = Icon[ICONS[r.service]];
   const currentIndex = r.steps.findIndex((s) => s.status === r.status);
+  // A booking waiting for its booked time is not "being worked on", so its bar does not animate.
+  const waiting = isUpcoming(r, hotel.timezone) && r.statusLabel !== r.steps[0]?.label;
 
   const cancel = async () => {
     setBusy(true);
@@ -58,7 +60,7 @@ export function RequestCard({ r: initial, onChange }: { r: ServiceRequestDto; on
       {!r.isCancelled && (
         <ol className="steps" aria-label="Progress">
           {r.steps.map((s, i) => (
-            <li key={s.status} title={s.label} data-done={i < currentIndex || (i === currentIndex && r.isFinal)} data-current={i === currentIndex && !r.isFinal}>
+            <li key={s.status} title={s.label} data-done={i < currentIndex || (i === currentIndex && (r.isFinal || waiting))} data-current={i === currentIndex && !r.isFinal && !waiting}>
               <span className="visually-hidden">
                 {s.label}
                 {s.at ? ` at ${timeOf(s.at, hotel.timezone)}` : ''}

@@ -91,6 +91,35 @@ The run fails on any browser console error. Screenshots are saved to `test-resul
 | Check-out said "Card used to book" without saying which card | Shows "Visa ending 4242" |
 | Early check-out kept an airport transfer booked for a later day | Later-day transfers are cancelled and refunded; same-day kept (test 15) |
 
+### Live retest after the keep-awake fix (19 November 2026)
+
+I repeated every feature on the live site with booking SB-CC9FJ4, using the 10-second timers.
+
+| Check | Result |
+| --- | --- |
+| Health page shows every service timer at 10 s, scheduler every 2 s | Pass |
+| Room search, booking, confirmation text, Manage booking (wrong last name refused, correct one case-insensitive) | Pass |
+| Online check-in with an Emirates ID → room 201 and a Stay ID | Pass |
+| Dining cart with the Mains filter and the − button (AED 160) | Pass |
+| Express laundry (AED 165 incl. 50%), cancelled before pickup and refunded | Pass |
+| Housekeeping with a note, amenities, maintenance (category required, urgent flag) | Pass |
+| Spa: 3 overlapping 90-min bookings accepted, a 4th refused; last start 20:30 | Pass |
+| Transfers: under 2 h notice refused; 5 passengers in a sedan flagged; same-day DXB and later-day DWC booked | Pass |
+| Statuses: dining, housekeeping, amenities and maintenance completed within about a minute | Pass |
+| **Site idle for 17 minutes, then the stay reopened** (page loaded in 0.3 s, no cold start) | Pass |
+| Bill AED 5,684.04, every tax checked by hand | Pass |
+| Early check-out: second night, 3 future spa bookings and the later-day transfer refunded; same-day transfer kept; total AED 1,819.95 | Pass |
+| PDF invoice, feedback once, Wi-Fi and new orders refused after check-out (409), no console errors | Pass |
+
+**Defects I found and fixed in the retest**
+
+| Defect | Fix |
+| --- | --- |
+| A stay disappeared after about 15 minutes without visitors: Render stopped the idle free service and the restart cleared the database | The app pings its own `/api/health` every 10 minutes so the service never idles |
+| After cancelling from an order's confirmation screen, the card still showed the old status and a Cancel button | The card updates from the cancel response straight away |
+| Future spa and transfer bookings sat under "In progress" until their booked time, which looked like a stuck timer | They are listed under a separate **Upcoming** section with a static progress bar |
+| House rules mentioned asking "in the app" for a late check-out, which the app does not offer | The rule now refers to reception |
+
 ## 10.4 Tests I plan to add
 
 - Front-end component tests (React Testing Library) for the cart, slot grid and forms.
