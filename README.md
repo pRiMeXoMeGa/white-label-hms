@@ -2,7 +2,14 @@
 
 I built a single web app that covers a hotel guest's whole stay without a login: **book a room → check in online → order services to the room → see a live bill → check out and download the invoice**. It ships with a fictional demo hotel, *Saffron Bay Hotel & Spa* in Dubai, and every brand detail, price, tax and service comes from one config file, so it can be re-branded for another property.
 
-**Live demo:** https://white-label-hms.onrender.com (test card `4242 4242 4242 4242`, expiry `12/29`)
+| | |
+| --- | --- |
+| **Live demo** | https://white-label-hms.onrender.com (test card `4242 4242 4242 4242`, expiry `12/29`, CVC `123`) |
+| **User guide** | [Step-by-step walkthrough with screenshots](docs/14-user-guide.md#141-guest-guide) |
+| **Demo script** | [The 5-minute tour I use to present the app](docs/14-user-guide.md#142-five-minute-demo-script) |
+| **Documentation** | [All 14 design and project documents](docs/README.md) |
+
+The demo runs on a free hosting plan: after 15 minutes without visitors the server sleeps, and the first visit takes up to a minute while it wakes.
 
 Works on any screen from a 320 px phone to a desktop; the in-stay app is designed for phones.
 
