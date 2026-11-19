@@ -42,7 +42,15 @@ export function buildRouter(ctx: AppContext): Router {
   const r = new Router();
   const h = ctx.hotel;
 
-  r.get('/api/health', () => ({ ok: true, today: today(ctx) }));
+  r.get('/api/health', () => ({
+    ok: true,
+    today: today(ctx),
+    autoAdvance: {
+      enabled: ctx.config.autoAdvance.enabled,
+      tickSeconds: ctx.config.autoAdvance.tickSeconds,
+      secondsByService: ctx.config.autoAdvance.secondsByService,
+    },
+  }));
 
   // ---------- Public site ----------
   r.get('/api/hotel', (): PublicHotel => ({

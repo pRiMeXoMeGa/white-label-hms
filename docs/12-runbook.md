@@ -6,7 +6,7 @@ How I run, operate and troubleshoot the app.
 ## 12.1 Live site checks
 
 1. The free Render service sleeps after 15 minutes idle and takes up to a minute to wake on the next visit.
-2. `https://white-label-hms.onrender.com/api/health` returns `{"ok":true,...}` when the service is up.
+2. `https://white-label-hms.onrender.com/api/health` returns `{"ok":true,...}` when the service is up, including the active timer values under `autoAdvance`.
 3. Statuses move every 10 seconds on the live site (`AUTO_ADVANCE_SECONDS=10`). The timer variables are under **Environment** in Render; saving a change there triggers a redeploy (about 2–4 minutes), which also resets the data.
 
 ## 12.2 Everyday tasks
@@ -35,7 +35,7 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 | "Online check-in opens on …" | Booking starts on a later date | Check-in opens on the arrival day, or earlier with `EARLY_CHECKIN_DAYS` |
 | "Stay not found. Check your Stay ID." | Typo, or the data was reset | Manage booking recovers the Stay ID; after a reset the booking no longer exists |
 | "Too many attempts. Try again in N seconds." | 30 failed lookups in a minute from one IP | Lookups work again after the time shown |
-| Statuses not moving | `AUTO_ADVANCE_ENABLED=false`, or timers changed from the 10 s default | The `scheduler started` log line shows the active timer values |
+| Statuses slower than 10 s, or not moving | Render still holds older timer values, or `AUTO_ADVANCE_ENABLED=false` | `/api/health` and the `scheduler started` log line show the active values; the Environment page in Render holds the source values |
 | Spa shows no free times | Less than 60 minutes' notice, or all 3 rooms taken | Later times or another day are available |
 | Transfer refused | Less than 2 hours' notice, after the check-out day, or too many passengers for the car | The error message names the rule |
 | Build fails on Render | A failing test or a dependency install error | The build log shows the failing step; `npm test` reproduces test failures locally |

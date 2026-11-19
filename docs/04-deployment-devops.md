@@ -113,7 +113,7 @@ Property-specific settings (brand, prices, taxes, catalogue) live in `config/hot
 ## 4.6 Observability
 
 - **Logs:** one JSON line per API request (`method`, `path`, `status`, `ms`) and per scheduler tick that changed something (`advanced`, `cleaned`); unhandled errors log the stack. Render shows them under the service's Logs.
-- **Health:** `GET /api/health` → `{"ok":true,"today":"2026-11-19"}`; used by Render and the Docker `HEALTHCHECK`.
+- **Health:** `GET /api/health` → `{"ok":true,"today":"2026-11-19","autoAdvance":{"enabled":true,"tickSeconds":2,"secondsByService":{"food":10,...}}}`; used by Render and the Docker `HEALTHCHECK`, and shows the timer values the running service is using.
 - **Planned for production:** shipping logs to a log service, request IDs, metrics (request rate, latency, scheduler lag) and uptime alerts.
 
 ## 4.7 Backup, restore and rollback
