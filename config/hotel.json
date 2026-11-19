@@ -1,0 +1,232 @@
+{
+  "brand": {
+    "name": "Saffron Bay Hotel & Spa",
+    "shortName": "Saffron Bay",
+    "codePrefix": "SB",
+    "tagline": "A calm, sunlit stay between the Marina and the sea.",
+    "colors": {
+      "primary": "#12403f",
+      "primaryInk": "#ffffff",
+      "accent": "#d99a1e",
+      "surface": "#e9f0ee",
+      "ink": "#1b2221"
+    }
+  },
+  "contact": {
+    "address": "Al Sufouh Road, Dubai Marina, Dubai, UAE",
+    "phone": "+971 4 000 0000",
+    "email": "stay@saffronbay.example",
+    "whatsapp": "+971 50 000 0000"
+  },
+  "currency": "AED",
+  "locale": "en-AE",
+  "timezone": "Asia/Dubai",
+  "checkInTime": "15:00",
+  "checkOutTime": "12:00",
+  "maxNights": 30,
+  "bookingWindowDays": 365,
+  "weekend": { "nights": [4, 5], "rateMultiplier": 1.2 },
+  "highlights": [
+    "Beachfront pool and private beach",
+    "Five-minute walk to Dubai Marina Walk",
+    "Spa with three treatment rooms",
+    "24-hour in-room dining"
+  ],
+  "taxes": [
+    {
+      "type": "percent",
+      "code": "SC",
+      "name": "Service charge",
+      "ratePercent": 10,
+      "appliesTo": ["room", "food", "laundry", "spa", "transfer", "other"]
+    },
+    {
+      "type": "percent",
+      "code": "MF",
+      "name": "Municipality fee",
+      "ratePercent": 7,
+      "appliesTo": ["room", "food"]
+    },
+    {
+      "type": "per_room_night",
+      "code": "TD",
+      "name": "Tourism Dirham",
+      "amountMinor": 1500
+    },
+    {
+      "type": "percent",
+      "code": "VAT",
+      "name": "VAT",
+      "ratePercent": 5,
+      "appliesTo": ["room", "food", "laundry", "spa", "transfer", "other"],
+      "compoundOn": ["SC", "MF"]
+    }
+  ],
+  "taxesNote": "Rates exclude 10% service charge, 7% municipality fee, AED 15 Tourism Dirham per room night and 5% VAT. Example rates, configurable per property.",
+  "wifi": {
+    "network": "SaffronBay-Guest",
+    "password": "sunrise-2026",
+    "note": "Also works in the lobby, pool and spa. Need faster speed for video calls? Ask reception for the premium network."
+  },
+  "hours": [
+    { "name": "Breakfast", "place": "Saffron Kitchen, lobby level", "hours": "06:30 to 10:30 daily, until 11:30 on weekends" },
+    { "name": "In-room dining", "place": "Order in the app", "hours": "24 hours" },
+    { "name": "Pool and beach", "place": "Level 1, beach side", "hours": "07:00 to 20:00" },
+    { "name": "Gym", "place": "Level 2", "hours": "24 hours with your room key" },
+    { "name": "Spa", "place": "Level 2", "hours": "10:00 to 22:00" },
+    { "name": "Rooftop lounge", "place": "Level 12", "hours": "17:00 to 01:00" }
+  ],
+  "houseRules": [
+    "Check-in from 15:00, check-out by 12:00. Ask in the app for a late check-out.",
+    "All rooms are non-smoking. A cleaning fee applies if smoking is detected.",
+    "Quiet hours are 23:00 to 07:00.",
+    "Pool towels are available at the pool desk; please do not take room towels outside.",
+    "Visitors are welcome in public areas; please register overnight guests at reception."
+  ],
+  "localGuide": [
+    { "name": "Dubai Marina Walk", "category": "Walk and dine", "distanceKm": 0.8, "description": "Waterfront promenade lined with cafes and restaurants.", "tip": "Best at sunset, when the towers light up." },
+    { "name": "JBR Beach", "category": "Beach", "distanceKm": 1.5, "description": "Public beach with water sports, play areas and a lively boardwalk." },
+    { "name": "Ain Dubai, Bluewaters", "category": "Landmark", "distanceKm": 2.5, "description": "Giant observation wheel on Bluewaters Island, with shops and restaurants around it." },
+    { "name": "Palm Jumeirah", "category": "Sightseeing", "distanceKm": 8, "description": "The palm-shaped island; take the monorail along the trunk for the views." },
+    { "name": "Mall of the Emirates", "category": "Shopping", "distanceKm": 6, "description": "Large mall with an indoor ski slope, cinemas and a food court." },
+    { "name": "Souk Madinat Jumeirah", "category": "Culture and shopping", "distanceKm": 9, "description": "Arabian-style market with waterways, crafts and restaurants.", "tip": "Abra boat rides run through the canals in the evening." },
+    { "name": "Burj Khalifa and The Dubai Mall", "category": "Landmark", "distanceKm": 25, "description": "The world's tallest building and one of its largest malls, with the fountain show outside." },
+    { "name": "Al Fahidi Historical District", "category": "Culture", "distanceKm": 30, "description": "Restored wind-tower houses, museums and galleries in old Dubai, near the creek and the souks." }
+  ],
+  "roomTypes": [
+    {
+      "slug": "deluxe-king",
+      "name": "Deluxe King",
+      "description": "A bright, quiet room with a king bed, a work desk and a rain shower.",
+      "baseRateMinor": 65000,
+      "maxAdults": 2,
+      "maxChildren": 1,
+      "sizeSqm": 34,
+      "bed": "1 king bed",
+      "view": "Marina view",
+      "amenities": ["Free Wi-Fi", "Rain shower", "Nespresso machine", "Smart TV", "Work desk"],
+      "rooms": ["101", "102", "103", "104", "105", "106"]
+    },
+    {
+      "slug": "deluxe-twin",
+      "name": "Deluxe Twin",
+      "description": "Two queen beds for friends or family, with a sofa corner.",
+      "baseRateMinor": 68000,
+      "maxAdults": 3,
+      "maxChildren": 2,
+      "sizeSqm": 38,
+      "bed": "2 queen beds",
+      "view": "Marina view",
+      "amenities": ["Free Wi-Fi", "Bathtub", "Sofa corner", "Smart TV", "Minibar"],
+      "rooms": ["107", "108", "109", "110"]
+    },
+    {
+      "slug": "sea-view-premier",
+      "name": "Sea View Premier",
+      "description": "Floor-to-ceiling windows facing the Gulf, a balcony and a deep soaking tub.",
+      "baseRateMinor": 95000,
+      "maxAdults": 2,
+      "maxChildren": 2,
+      "sizeSqm": 45,
+      "bed": "1 king bed",
+      "view": "Sea view with balcony",
+      "amenities": ["Free Wi-Fi", "Balcony", "Soaking tub", "Nespresso machine", "Bluetooth speaker"],
+      "rooms": ["201", "202", "203", "204", "205"]
+    },
+    {
+      "slug": "one-bedroom-suite",
+      "name": "One-Bedroom Suite",
+      "description": "A separate living room, dining table for four and a wraparound sea-view terrace.",
+      "baseRateMinor": 160000,
+      "maxAdults": 3,
+      "maxChildren": 2,
+      "sizeSqm": 82,
+      "bed": "1 king bed + sofa bed",
+      "view": "Panoramic sea view, terrace",
+      "amenities": ["Free Wi-Fi", "Terrace", "Living room", "Lounge access", "Butler on request"],
+      "rooms": ["301", "302"]
+    }
+  ],
+  "dining": [
+    { "code": "BRK-ARABIC", "category": "Breakfast", "name": "Arabic breakfast", "description": "Foul medames, labneh, zaatar manakish, olives, fresh vegetables.", "priceMinor": 6500, "tags": ["vegetarian"] },
+    { "code": "BRK-CONT", "category": "Breakfast", "name": "Continental breakfast", "description": "Pastries, fruit, yoghurt, juice and coffee.", "priceMinor": 5500, "tags": ["vegetarian"] },
+    { "code": "BRK-SHAK", "category": "Breakfast", "name": "Shakshuka", "description": "Eggs baked in spiced tomato sauce, with sourdough.", "priceMinor": 4800, "tags": ["vegetarian"] },
+    { "code": "STR-HUMMUS", "category": "Starters", "name": "Hummus and warm pita", "description": "Chickpea hummus, olive oil, paprika.", "priceMinor": 3200, "tags": ["vegan"] },
+    { "code": "STR-FATT", "category": "Starters", "name": "Fattoush salad", "description": "Crisp vegetables, sumac dressing, toasted bread.", "priceMinor": 3600, "tags": ["vegan"] },
+    { "code": "MAIN-MACH", "category": "Mains", "name": "Chicken machboos", "description": "Spiced rice with slow-cooked chicken and dakkus sauce.", "priceMinor": 8900, "tags": [] },
+    { "code": "MAIN-BURG", "category": "Mains", "name": "Wagyu beef burger", "description": "Brioche bun, cheddar, pickles, fries.", "priceMinor": 9500, "tags": [] },
+    { "code": "MAIN-SALMON", "category": "Mains", "name": "Grilled salmon", "description": "Herb potatoes, greens, lemon butter.", "priceMinor": 11500, "tags": ["gluten-free"] },
+    { "code": "MAIN-PASTA", "category": "Mains", "name": "Penne arrabbiata", "description": "Tomato, chilli, garlic, basil.", "priceMinor": 6900, "tags": ["vegan"] },
+    { "code": "MAIN-CLUB", "category": "Mains", "name": "Club sandwich", "description": "Chicken, turkey ham, egg, fries.", "priceMinor": 7200, "tags": [] },
+    { "code": "DES-UMALI", "category": "Desserts", "name": "Umm Ali", "description": "Warm bread pudding with nuts and cream.", "priceMinor": 4200, "tags": ["vegetarian"] },
+    { "code": "DES-FRUIT", "category": "Desserts", "name": "Seasonal fruit platter", "description": "Freshly cut fruit.", "priceMinor": 3800, "tags": ["vegan", "gluten-free"] },
+    { "code": "DRK-KARAK", "category": "Drinks", "name": "Karak chai", "description": "Spiced milk tea.", "priceMinor": 1800, "tags": ["vegetarian"] },
+    { "code": "DRK-JUICE", "category": "Drinks", "name": "Fresh orange juice", "description": "Freshly squeezed.", "priceMinor": 2400, "tags": ["vegan"] },
+    { "code": "DRK-WATER", "category": "Drinks", "name": "Sparkling water, 750 ml", "description": "", "priceMinor": 2200, "tags": ["vegan"] }
+  ],
+  "laundry": {
+    "expressSurchargePercent": 50,
+    "items": [
+      { "code": "LND-SHIRT", "category": "Wash and press", "name": "Shirt", "priceMinor": 2000 },
+      { "code": "LND-TROUSER", "category": "Wash and press", "name": "Trousers", "priceMinor": 2500 },
+      { "code": "LND-DRESS", "category": "Wash and press", "name": "Dress", "priceMinor": 4000 },
+      { "code": "LND-TSHIRT", "category": "Wash and press", "name": "T-shirt", "priceMinor": 1500 },
+      { "code": "LND-KANDURA", "category": "Wash and press", "name": "Kandura / abaya", "priceMinor": 3500 },
+      { "code": "LND-SUIT", "category": "Dry cleaning", "name": "Suit (2 pieces)", "priceMinor": 9000 },
+      { "code": "LND-JACKET", "category": "Dry cleaning", "name": "Jacket", "priceMinor": 5500 },
+      { "code": "LND-PRESS", "category": "Pressing only", "name": "Any item, pressing only", "priceMinor": 1200 }
+    ]
+  },
+  "amenities": [
+    { "code": "AM-PILLOW", "category": "Comfort", "name": "Extra pillow" },
+    { "code": "AM-BLANKET", "category": "Comfort", "name": "Extra blanket" },
+    { "code": "AM-COT", "category": "Family", "name": "Baby cot" },
+    { "code": "AM-BOTTLE", "category": "Family", "name": "Bottle warmer" },
+    { "code": "AM-IRON", "category": "Room", "name": "Iron and ironing board" },
+    { "code": "AM-ADAPTER", "category": "Room", "name": "Universal power adapter" },
+    { "code": "AM-CHARGER", "category": "Room", "name": "Phone charger (USB-C / Lightning)" },
+    { "code": "AM-PRAYER", "category": "Room", "name": "Prayer mat" }
+  ],
+  "housekeeping": [
+    { "code": "HK-CLEAN", "category": "Service", "name": "Clean my room now" },
+    { "code": "HK-TURNDOWN", "category": "Service", "name": "Evening turndown" },
+    { "code": "HK-TOWELS", "category": "Supplies", "name": "Fresh towels" },
+    { "code": "HK-TOILETRIES", "category": "Supplies", "name": "Toiletries refill" },
+    { "code": "HK-WATER", "category": "Supplies", "name": "Drinking water" },
+    { "code": "HK-LINEN", "category": "Service", "name": "Change bed linen" }
+  ],
+  "maintenanceCategories": [
+    "Air conditioning",
+    "Plumbing or water",
+    "Electrical or lights",
+    "TV or Wi-Fi",
+    "Door or lock",
+    "Other"
+  ],
+  "spa": {
+    "opensAt": "10:00",
+    "closesAt": "22:00",
+    "slotMinutes": 30,
+    "treatmentRooms": 3,
+    "minLeadMinutes": 60,
+    "treatments": [
+      { "code": "SPA-SWEDISH", "name": "Swedish massage", "description": "Classic full-body massage with long, flowing strokes.", "durationMin": 60, "priceMinor": 45000 },
+      { "code": "SPA-DEEP", "name": "Deep tissue massage", "description": "Firm pressure for tight muscles after travel or training.", "durationMin": 90, "priceMinor": 62000 },
+      { "code": "SPA-HAMMAM", "name": "Traditional hammam", "description": "Steam, black-soap scrub and a rhassoul clay wrap.", "durationMin": 60, "priceMinor": 52000 },
+      { "code": "SPA-FACIAL", "name": "Hydrating facial", "description": "Cleanse, exfoliate and hydrate, ideal after sun.", "durationMin": 60, "priceMinor": 40000 },
+      { "code": "SPA-FOOT", "name": "Foot and leg reflexology", "description": "Pressure-point massage to relieve tired legs.", "durationMin": 30, "priceMinor": 22000 }
+    ]
+  },
+  "transfers": {
+    "minLeadMinutes": 120,
+    "airports": [
+      { "code": "DXB", "name": "Dubai International Airport", "durationMin": 35 },
+      { "code": "DWC", "name": "Al Maktoum International Airport", "durationMin": 40 }
+    ],
+    "vehicles": [
+      { "code": "sedan", "name": "Sedan", "seats": 3, "bags": 2, "priceMinor": 18000 },
+      { "code": "suv", "name": "SUV", "seats": 6, "bags": 4, "priceMinor": 26000 },
+      { "code": "luxury", "name": "Luxury sedan", "seats": 3, "bags": 2, "priceMinor": 45000 }
+    ]
+  }
+}
