@@ -35,7 +35,7 @@ export function Confirmation({ code }: { code: string }) {
       <div className="split">
         <section className="panel stack" style={gap('1.1rem')}>
           <p className="muted" style={{ margin: 0 }}>
-            Booking confirmed. We have sent the details to {r.guest.email}.
+            Booking confirmed for {r.guest.firstName} {r.guest.lastName}.
           </p>
           <div>
             <div className="small muted">Your booking reference</div>

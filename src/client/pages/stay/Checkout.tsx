@@ -21,6 +21,8 @@ export function Checkout() {
 
   const early = hotel.today < stay.checkOut && hotel.today >= stay.checkIn;
   const futureSpa = requests.data?.filter((r) => r.service === 'spa' && !r.isFinal && !r.isCancelled) ?? [];
+  const laterTransfers =
+    requests.data?.filter((r) => r.service === 'transfer' && !r.isFinal && !r.isCancelled && (r.scheduledAt ?? '') > `${hotel.today}T23:59`) ?? [];
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -55,6 +57,7 @@ export function Checkout() {
         </Notice>
       )}
       {futureSpa.length > 0 && <Notice>Spa bookings that have not started yet will be cancelled and refunded.</Notice>}
+      {early && laterTransfers.length > 0 && <Notice>Airport transfers booked for a later day will be cancelled and refunded.</Notice>}
 
       <section className="panel stack" style={gap('0.6rem')}>
         <div className="bill-total">
@@ -76,7 +79,7 @@ export function Checkout() {
           <label className="choice">
             <input type="radio" name="method" checked={method === 'card_on_file'} onChange={() => setMethod('card_on_file')} />
             <span className="choice-body">
-              <span className="choice-title">Card used to book</span>
+              <span className="choice-title">{stay.cardOnFile ?? 'Card used to book'}</span>
               <span className="small muted">The card that guaranteed your booking</span>
             </span>
           </label>

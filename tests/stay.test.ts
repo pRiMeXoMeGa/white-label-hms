@@ -159,6 +159,18 @@ test('early check-out releases unused nights, refunds future spa, freezes an inv
   expectHttpError(() => leaveFeedback(ctx, stay.stay_code!, { rating: 4 }), 409, 'feedback_exists');
 });
 
+test('early check-out cancels transfers booked for a later day but keeps today\'s', () => {
+  const { ctx } = makeCtx();
+  const stay = checkedInGuest(ctx, { checkIn: '2026-03-02', checkOut: '2026-03-05' });
+  const base = { direction: 'to_airport' as const, airport: 'DXB', vehicle: 'sedan', flightNumber: 'EK 203', passengers: 2 };
+  const today = bookTransfer(ctx, stay, { ...base, pickupAt: '2026-03-02T18:00' });
+  const later = bookTransfer(ctx, stay, { ...base, pickupAt: '2026-03-05T09:00' });
+  const invoice = checkout(ctx, stay.stay_code!, { method: 'card_on_file' });
+  assert.equal(getRequestRow(ctx, today.id)!.status, 'requested');
+  assert.equal(getRequestRow(ctx, later.id)!.status, 'cancelled');
+  assert.equal(invoice.bill.byCategory.find((c) => c.category === 'transfer')!.amountMinor, today.total_minor);
+});
+
 test('rooms left dirty at check-out are cleaned after HOUSEKEEPING_TURNAROUND_SECONDS', () => {
   const { ctx, clock } = makeCtx({ env: { HOUSEKEEPING_TURNAROUND_SECONDS: '600' } });
   const stay = checkedInGuest(ctx);

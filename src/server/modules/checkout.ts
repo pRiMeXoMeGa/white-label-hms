@@ -67,6 +67,15 @@ export function checkout(ctx: AppContext, stayCodeInput: string, input: Checkout
     );
     for (const s of futureSpa) voidRequest(ctx, r, s, 'Released at check-out');
 
+    // Leaving early: airport transfers booked for a later day no longer apply.
+    if (t < r.check_out) {
+      const laterTransfers = ctx.db.all<ServiceRequestRow>(
+        "SELECT * FROM service_requests WHERE reservation_id = ? AND service = 'transfer' AND status IN ('requested', 'confirmed', 'driver_assigned') AND substr(scheduled_at, 1, 10) > ?",
+        [r.id, t],
+      );
+      for (const s of laterTransfers) voidRequest(ctx, r, s, 'Released at check-out');
+    }
+
     // 3. Taxes, payment, invoice.
     const bill = computeLiveBill(ctx, r);
     for (const tax of bill.taxes) {

@@ -145,7 +145,7 @@ All endpoints are JSON under `/api`. Errors look like `{ "error": { "code": "sol
 ## Tests
 
 ```bash
-npm test          # 19 unit and integration tests, in-memory database and a fake clock
+npm test          # 20 unit and integration tests, in-memory database and a fake clock
 npm run typecheck
 npm run e2e       # full guest journey in headless Chromium, with screenshots (app must be running)
 ```

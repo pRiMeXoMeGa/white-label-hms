@@ -97,6 +97,7 @@ export function toStayDto(ctx: AppContext, r: ReservationRow): StayDto {
     balanceMinor: getBill(ctx, r).balanceMinor,
     invoiceNumber: invoice?.number ?? null,
     feedbackGiven: Boolean(feedback),
+    cardOnFile: r.card_last4 ? `${r.card_brand ?? 'Card'} ending ${r.card_last4}` : null,
   };
 }
 

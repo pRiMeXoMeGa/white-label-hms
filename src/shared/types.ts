@@ -107,6 +107,8 @@ export interface StayDto {
   balanceMinor: number;
   invoiceNumber: string | null;
   feedbackGiven: boolean;
+  /** e.g. "Visa ending 4242": the card that guaranteed the booking. */
+  cardOnFile: string | null;
 }
 
 export interface StayInfo {
