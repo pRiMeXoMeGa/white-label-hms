@@ -8,7 +8,7 @@ I built a single web app that covers a hotel guest's whole stay without a login:
 | **User guide** | [Step-by-step walkthrough with screenshots](docs/14-user-guide.md#141-guest-guide) |
 | **Documentation** | [All 14 design and project documents](docs/README.md) |
 
-The demo runs on a free hosting plan: after 15 minutes without visitors the server sleeps, and the first visit takes up to a minute while it wakes.
+The demo runs on a free hosting plan. The app keeps its server awake, and its data is cleared only when I deploy a new version.
 
 Works on any screen from a 320 px phone to a desktop; the in-stay app is designed for phones.
 
@@ -190,7 +190,7 @@ CI (GitHub Actions) runs typecheck, tests, build, the browser journey and the re
 
 The [`Dockerfile`](Dockerfile) runs the tests, builds, and ships a small image with only the bundle and the hotel config, with no `node_modules` at runtime.
 
-**Render (free):** I deploy through the Render Blueprint in [`render.yaml`](render.yaml), which sets up the web service, health check and timer variables; every push to `main` redeploys. On the free plan the SQLite file is wiped when the service restarts, so the demo data resets; a paid plan with a disk keeps it.
+**Render (free):** I deploy through the Render Blueprint in [`render.yaml`](render.yaml), which sets up the web service, health check and timer variables; every push to `main` redeploys. The free plan has no persistent disk, so the SQLite file is cleared on each deploy or restart. Render stops free services after 15 minutes without traffic, so the app requests its own `/api/health` every 10 minutes (`KEEP_ALIVE_MINUTES`) to stay awake and keep its data between deploys. A paid plan with a disk keeps data across deploys too.
 
 The same image runs on any Docker host (Railway, Fly.io, a VM) with the env variables set and a volume at `/data` for the database. Environments, CI/CD, backup and rollback are in [Deployment and DevOps](docs/04-deployment-devops.md); everyday tasks and troubleshooting are in the [runbook](docs/12-runbook.md).
 

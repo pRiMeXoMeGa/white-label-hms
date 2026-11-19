@@ -108,9 +108,18 @@ export function StayApp() {
 
   if (stay.error) {
     if (stay.error.status === 404 && rememberedStay() === code) forgetStay();
+    const gone = stay.error.status === 404;
     return (
       <div className="app" style={{ paddingTop: '2rem' }}>
-        <ErrorNotice error={stay.error} />
+        {gone ? (
+          <Notice tone="error">
+            We could not find stay {code}. This is a demo: its data is cleared whenever the server is updated or
+            restarted, so stays from before that are no longer available. You can <Link href="/">book a new stay</Link> and
+            check in again, or enter a different Stay ID below.
+          </Notice>
+        ) : (
+          <ErrorNotice error={stay.error} />
+        )}
         <div style={{ marginTop: '1rem' }}>
           <StayEntryForm />
         </div>

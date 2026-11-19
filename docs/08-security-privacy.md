@@ -51,7 +51,7 @@ flowchart LR
 **Privacy notes (UAE PDPL / GDPR-style principles)**
 - *Data minimisation:* only what a hotel needs to register a guest; card and ID numbers are truncated on arrival.
 - *Purpose limitation:* data is used only to run the stay; there is no marketing or tracking, no third-party scripts, no cookies (local storage only keeps the Stay ID on the guest's own device).
-- *Retention:* the demo database resets on restart. For production I plan a retention job that anonymises guest details a set number of months after check-out and keeps invoices for the legally required period.
+- *Retention:* the demo database is cleared on every deploy. For production I plan a retention job that anonymises guest details a set number of months after check-out and keeps invoices for the legally required period.
 - *Rights:* for production I plan export and erasure of guest details, while keeping tax records.
 
 Guest registration rules (for example, UAE hotels reporting guests to the authorities) need the full document and are handled at the front desk in this design; the app explains that the original document is checked when the key is collected.

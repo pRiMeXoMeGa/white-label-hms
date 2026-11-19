@@ -32,6 +32,12 @@ const EnvSchema = z.object({
   // Allow online check-in N days before the arrival date (0 = arrival day only).
   EARLY_CHECKIN_DAYS: z.coerce.number().int().min(0).max(30).default(0),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(30),
+
+  // Keep-awake: free hosts (Render) stop an idle service after 15 minutes, which wipes an
+  // on-container SQLite file. The app requests its own public URL on an interval so it never idles.
+  KEEP_ALIVE_URL: z.string().url().optional(),
+  RENDER_EXTERNAL_URL: z.string().url().optional(), // set automatically by Render
+  KEEP_ALIVE_MINUTES: z.coerce.number().int().min(0).max(60).default(10), // 0 disables
 });
 
 export interface AppConfig {
@@ -50,6 +56,7 @@ export interface AppConfig {
   housekeepingTurnaroundSeconds: number;
   earlyCheckinDays: number;
   rateLimitPerMinute: number;
+  keepAlive: { url: string | null; minutes: number };
 }
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -84,5 +91,6 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     housekeepingTurnaroundSeconds: e.HOUSEKEEPING_TURNAROUND_SECONDS,
     earlyCheckinDays: e.EARLY_CHECKIN_DAYS,
     rateLimitPerMinute: e.RATE_LIMIT_PER_MINUTE,
+    keepAlive: { url: e.KEEP_ALIVE_URL ?? e.RENDER_EXTERNAL_URL ?? null, minutes: e.KEEP_ALIVE_MINUTES },
   };
 }

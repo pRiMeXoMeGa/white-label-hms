@@ -5,9 +5,9 @@ How I run, operate and troubleshoot the app.
 
 ## 12.1 Live site checks
 
-1. The free Render service sleeps after 15 minutes idle and takes up to a minute to wake on the next visit.
+1. Render stops free services after 15 minutes without traffic, and a restart clears the database. The app pings its own `/api/health` every 10 minutes, so it stays awake; the log shows `keep-alive started` at boot.
 2. `https://white-label-hms.onrender.com/api/health` returns `{"ok":true,...}` when the service is up, including the active timer values under `autoAdvance`.
-3. Statuses move every 10 seconds on the live site (`AUTO_ADVANCE_SECONDS=10`). The timer variables are under **Environment** in Render; saving a change there triggers a redeploy (about 2–4 minutes), which also resets the data.
+3. Statuses move every 10 seconds on the live site (`AUTO_ADVANCE_SECONDS=10`). The timer variables are under **Environment** in Render; saving a change there triggers a redeploy (about 2–4 minutes), which also resets the data, as does every push to `main`.
 
 ## 12.2 Everyday tasks
 
@@ -30,10 +30,10 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 
 | Symptom | Cause | Resolution |
 | --- | --- | --- |
-| Site takes ~1 min to open | Free instance was asleep | It wakes by itself within about a minute |
-| Bookings disappeared | Service restarted or redeployed (no disk on the free plan) | Expected on the free plan; a paid plan with a disk keeps data |
+| Site takes ~1 min to open | First visit after a deploy, or the keep-awake ping stopped | It wakes by itself within about a minute; `keep-alive ping failed` lines in the log show ping problems |
+| Bookings disappeared | A deploy or restart cleared the database (no disk on the free plan) | Expected after a deploy; a paid plan with a disk keeps data |
 | "Online check-in opens on …" | Booking starts on a later date | Check-in opens on the arrival day, or earlier with `EARLY_CHECKIN_DAYS` |
-| "Stay not found. Check your Stay ID." | Typo, or the data was reset | Manage booking recovers the Stay ID; after a reset the booking no longer exists |
+| "We could not find stay …" | Typo, or the data was cleared by a deploy | Manage booking recovers the Stay ID; after a reset the booking no longer exists |
 | "Too many attempts. Try again in N seconds." | 30 failed lookups in a minute from one IP | Lookups work again after the time shown |
 | Statuses slower than 10 s, or not moving | Render still holds older timer values, or `AUTO_ADVANCE_ENABLED=false` | `/api/health` and the `scheduler started` log line show the active values; the Environment page in Render holds the source values |
 | Spa shows no free times | Less than 60 minutes' notice, or all 3 rooms taken | Later times or another day are available |
@@ -46,6 +46,7 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 ```json
 {"msg":"database seeded","hotel":"Saffron Bay Hotel & Spa"}
 {"msg":"scheduler started","autoAdvance":true,"tickSeconds":2,"secondsByService":{"food":10,"laundry":10,...}}
+{"msg":"keep-alive started","target":"https://white-label-hms.onrender.com/api/health","everyMinutes":10}
 {"msg":"listening","url":"http://localhost:3000","env":"production"}
 {"msg":"request","method":"POST","path":"/api/reservations","status":201,"ms":4}
 {"msg":"scheduler tick","advanced":3,"cleaned":0}

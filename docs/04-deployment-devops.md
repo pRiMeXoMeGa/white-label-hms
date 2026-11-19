@@ -64,8 +64,8 @@ I created the service through Render's Blueprint flow (New → Blueprint → thi
 
 | Behaviour | Effect on the demo | How I handle it |
 | --- | --- | --- |
-| Sleeps after 15 min without traffic; ~1 min to wake | First visitor waits | Noted at the top of the README so visitors expect the short wait |
-| No persistent disk | Database resets on restart or redeploy (re-seeded automatically) | Acceptable for a demo; real use needs a paid plan with a disk |
+| Stops after 15 min without traffic; ~1 min to wake, and the restart clears the database | Guests lose their stay after a quiet spell | The app pings its own `/api/health` every 10 min (`KEEP_ALIVE_MINUTES`, using Render's `RENDER_EXTERNAL_URL`), so the service never idles; this uses about 720 of the 750 free hours a month |
+| No persistent disk | Database is cleared on every deploy or restart (re-seeded automatically) | I avoid deploying while the demo is being reviewed; real use needs a paid plan with a disk |
 | 512 MB RAM, 0.1 CPU | Enough for this app | A larger plan for real load |
 
 The `disk` block in `render.yaml` is commented out because the free plan has no disks. On the Starter plan with that block enabled (mounted at `/data`), data survives restarts.
@@ -107,6 +107,8 @@ All variables are optional; defaults are in [`src/server/config/env.ts`](../src/
 | `HOUSEKEEPING_TURNAROUND_SECONDS` | `300` | Dirty room becomes clean after this |
 | `EARLY_CHECKIN_DAYS` | `0` | Online check-in opens N days before arrival |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Failed lookups allowed per IP per minute |
+| `KEEP_ALIVE_URL` | `RENDER_EXTERNAL_URL` | Public URL the app pings to stay awake (Render sets `RENDER_EXTERNAL_URL` automatically) |
+| `KEEP_ALIVE_MINUTES` | `10` | Minutes between keep-awake pings; `0` turns it off (only active when `NODE_ENV=production`) |
 
 Property-specific settings (brand, prices, taxes, catalogue) live in `config/hotel.json`, not in env vars; the [operator guide](14-user-guide.md#142-operator-guide) describes them.
 

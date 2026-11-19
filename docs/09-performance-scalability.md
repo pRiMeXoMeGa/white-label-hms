@@ -12,7 +12,7 @@ The targets I set for the MVP:
 | Status freshness | A status change visible within 6 s of becoming due | Scheduler checks every 2 s, the app polls every 4 s (1 s ticks in CI) |
 | First load | < 300 KB transferred (gzip) | One JS bundle (~270 KB raw), one CSS file (~19 KB raw), no web fonts or images |
 | Capacity | One hotel (17 rooms in the demo; hundreds is fine) | Single process, single SQLite file |
-| Cold start (Render free) | ~1 min after 15 min idle | Platform behaviour, not the app |
+| Cold start (Render free) | None in normal use | The keep-awake ping every 10 minutes stops Render from idling the service; a cold start (~1 min) happens only after a deploy |
 
 ## 9.2 What makes it fast today
 

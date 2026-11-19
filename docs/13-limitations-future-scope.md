@@ -14,7 +14,7 @@ The limitations I accepted for the two-day MVP:
 | L4 | **No notifications** (email, SMS, WhatsApp) | Guests must keep their reference and Stay ID themselves | References are short and recoverable via Manage booking | Phase 2 |
 | L5 | **English only**, left-to-right | Not ready for Arabic-speaking guests | Layout uses logical structure; strings are in components | Phase 3 |
 | L6 | **SQLite, single instance**; in-memory rate limiter; scheduler in the web process | No high availability or horizontal scaling | One hotel's load is tiny ([section 9](09-performance-scalability.md)) | Phase 3 |
-| L7 | **Data resets** on the free Render plan | Bookings vanish after restarts or redeploys | Clean slate for every reviewer | Paid plan + disk (any time) |
+| L7 | **Data resets** on the free Render plan | Bookings vanish when I deploy a new version or Render restarts the service; a keep-awake ping prevents the 15-minute idle restart | Clean slate for every reviewer | Paid plan + disk (any time) |
 | L8 | **Polling** for live status | Extra requests while the app is open | Simple and reliable at this scale | Phase 3 |
 | L9 | **Stay ID in the URL** as a bearer key | Visible in history and screenshots | 59-bit random, rate-limited, only valid while checked in | Phase 2 |
 | L10 | **Room assigned at booking**; no room moves, upgrades or out-of-order management UI | Front desk can't reorganise rooms | Guarantees exact inventory per night | Phase 2 |

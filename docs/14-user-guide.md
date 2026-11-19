@@ -5,7 +5,7 @@
 
 Contents: [14.1 Guest guide](#141-guest-guide), [14.2 Operator guide](#142-operator-guide), [14.3 FAQ](#143-faq-and-troubleshooting)
 
-The demo hotel, Saffron Bay Hotel & Spa, is fictional. On the free hosting plan the site sleeps when unused, so the first visit can take up to a minute, and the data resets when the service restarts.
+The demo hotel, Saffron Bay Hotel & Spa, is fictional. The demo runs on a free hosting plan; its data is cleared whenever I deploy a new version.
 
 ---
 
@@ -156,8 +156,8 @@ The [runbook](12-runbook.md) covers the remaining operational tasks.
 
 | Question | Answer |
 | --- | --- |
-| Why does the site take a while to open? | The free server sleeps after 15 minutes without visitors and wakes within about a minute |
-| Where did a booking go? | The demo data resets when the free server restarts |
+| Why does the site take a while to open? | Right after a new version is deployed, the free server takes up to a minute to start |
+| Where did a booking or stay go? | The demo data is cleared when a new version is deployed; the in-stay app says so when it can't find a stay |
 | Why does check-in say it opens on a later date? | Online check-in opens on the arrival day; a stay starting today can check in straight away |
 | What if the Stay ID is lost? | **Manage booking** with the reference and last name shows **Open my stay** |
 | What does "Stay not found" mean? | The Stay ID has a typo (it is letters and numbers in three groups of four) or the data was reset |

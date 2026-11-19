@@ -6,6 +6,7 @@ import { Db } from './db/database';
 import { seedIfEmpty } from './db/seed';
 import { createHttpServer } from './http/server';
 import { systemClock } from './lib/time';
+import { startKeepAlive } from './keep-alive';
 import { startScheduler } from './modules/requests/scheduler';
 
 const log = (msg: string, extra: object = {}) =>
@@ -24,6 +25,7 @@ function main() {
 
   const ctx: AppContext = { db, config, hotel, clock: systemClock };
   const stopScheduler = startScheduler(ctx, log);
+  const stopKeepAlive = startKeepAlive(config, log);
   const server = createHttpServer(ctx, log);
 
   server.listen(config.port, config.host, () => {
@@ -33,6 +35,7 @@ function main() {
   const shutdown = (signal: string) => {
     log('shutting down', { signal });
     stopScheduler();
+    stopKeepAlive();
     server.close(() => {
       db.close();
       process.exit(0);
