@@ -4,7 +4,23 @@ A single web app that covers a hotel guest's whole stay without a login: **book 
 
 **Live demo:** https://white-label-hms.onrender.com (test card `4242 4242 4242 4242`, expiry `12/29`)
 
-**Documentation:** [docs/](docs/README.md): HLD, LLD, database schema, deployment, requirements, API, UI/UX, security, performance, testing, decision records, runbook, limitations and future scope, user guide with screenshots and a 5-minute demo script.
+Works on any screen from a 320 px phone to a desktop; the in-stay app is designed for phones.
+
+## Documentation
+
+Full design and project documentation is in [`docs/`](docs/README.md):
+
+| # | Document | # | Document |
+| --- | --- | --- | --- |
+| 1 | [High-level design](docs/01-high-level-design.md) | 8 | [Security and privacy](docs/08-security-privacy.md) |
+| 2 | [Low-level design](docs/02-low-level-design.md) | 9 | [Performance and scalability](docs/09-performance-scalability.md) |
+| 3 | [Database design and schema](docs/03-database-design.md) | 10 | [Testing and test report](docs/10-testing.md) |
+| 4 | [Deployment and DevOps](docs/04-deployment-devops.md) | 11 | [Architecture decision records](docs/11-decision-records.md) |
+| 5 | [Requirements](docs/05-requirements.md) | 12 | [Runbook](docs/12-runbook.md) |
+| 6 | [API specification](docs/06-api-specification.md) | 13 | [Limitations and future scope](docs/13-limitations-future-scope.md) |
+| 7 | [UI/UX design](docs/07-ui-ux-design.md) | 14 | [User guide and demo script](docs/14-user-guide.md) |
+
+New here? Start with the [5-minute demo script](docs/14-user-guide.md#142-five-minute-demo-script), then the [HLD](docs/01-high-level-design.md) and the [decision records](docs/11-decision-records.md).
 
 ## The guest journey
 
@@ -17,9 +33,9 @@ A single web app that covers a hotel guest's whole stay without a login: **book 
 | | Spa booking by time slot, airport transfer (to or from DXB/DWC, by car type) | |
 | | Hotel info: Wi-Fi password, opening hours, house rules, local guide | |
 | | Live status for every request, live itemised bill with taxes | |
-| 4. Check out | Pays the balance, unused nights released for early departures, PDF tax invoice, star rating | `/stay/:stayId/checkout` |
+| 4. Check out | Pays the balance; leaving early releases unused nights and refunds spa bookings not yet started and transfers booked for a later day; PDF tax invoice, star rating | `/stay/:stayId/checkout` |
 
-Other pages: **Manage booking** (`/manage`) to look up or cancel a booking or recover a lost Stay ID.
+Other pages: **Manage booking** (`/manage`) to look up or cancel a booking or recover a lost Stay ID. Step-by-step screenshots are in the [user guide](docs/14-user-guide.md).
 
 Test card: `4242 4242 4242 4242`, any future expiry, any CVC. No real payment is taken.
 
@@ -53,13 +69,15 @@ There is no staff panel in this version. A scheduler plays the hotel team and mo
 
 With the defaults a dining order goes received → preparing → on the way → delivered in about 30 seconds. Spa treatments and transfers move to *completed* when their booked time slot ends, not on the timer.
 
-Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_MINUTE`, …) are listed in [`.env.example`](.env.example). `npm start` and `npm run dev` read a `.env` file if there is one.
+Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_MINUTE`, …) are listed in [`.env.example`](.env.example) and the [configuration reference](docs/04-deployment-devops.md#45-configuration-reference). `npm start` and `npm run dev` read a `.env` file if there is one.
 
 ### White-label config
 
-[`config/hotel.json`](config/hotel.json) holds everything that is specific to a property: brand name and colours, contact details, check-in and check-out times, weekend pricing, the tax rules, Wi-Fi, opening hours, house rules, the local guide, room types and room numbers, the dining menu, laundry price list, amenities, housekeeping options, maintenance categories, spa treatments and opening hours, and transfer airports and car prices. It is validated with Zod at start-up, so a typo fails fast with a clear message. Point `HOTEL_CONFIG_PATH` at another file to run a different hotel; the brand colours are injected into the page server-side, and the illustrations are drawn in code from those colours.
+[`config/hotel.json`](config/hotel.json) holds everything that is specific to a property: brand name and colours, contact details, check-in and check-out times, weekend pricing, the tax rules, Wi-Fi, opening hours, house rules, the local guide, room types and room numbers, the dining menu, laundry price list, amenities, housekeeping options, maintenance categories, spa treatments and opening hours, and transfer airports and car prices. It is validated with Zod at start-up, so a typo fails fast with a clear message. Point `HOTEL_CONFIG_PATH` at another file to run a different hotel; the brand colours are injected into the page server-side, and the illustrations are drawn in code from those colours. See the [operator guide](docs/14-user-guide.md#143-operator-guide).
 
 ## Architecture
+
+Details: [high-level design](docs/01-high-level-design.md) and [low-level design](docs/02-low-level-design.md).
 
 ```mermaid
 flowchart LR
@@ -87,6 +105,8 @@ flowchart LR
 
 ### Design decisions worth knowing
 
+The reasoning and alternatives for each are in the [decision records](docs/11-decision-records.md).
+
 | Concern | Decision |
 | --- | --- |
 | No double bookings | Every sold room-night is a row in `room_nights` with primary key `(room_id, night)`. Bookings run in a `BEGIN IMMEDIATE` transaction, and the key rejects a second sale even if application code were wrong. On Postgres this becomes an `EXCLUDE USING gist` constraint on a date range. |
@@ -101,9 +121,13 @@ flowchart LR
 
 ### Data model
 
+Every table and column is described in the [database design](docs/03-database-design.md).
+
 ```mermaid
 erDiagram
   room_types ||--o{ rooms : has
+  room_types ||--o{ reservations : "booked as"
+  rooms ||--o{ reservations : "assigned to"
   rooms ||--o{ room_nights : "sold as"
   reservations ||--o{ room_nights : holds
   reservations ||--o{ folio_entries : "billed in"
@@ -119,7 +143,7 @@ erDiagram
 
 ### API
 
-All endpoints are JSON under `/api`. Errors look like `{ "error": { "code": "sold_out", "message": "…" } }`.
+All endpoints are JSON under `/api`. Errors look like `{ "error": { "code": "sold_out", "message": "…" } }`. Request and response examples, validation rules and error codes are in the [API specification](docs/06-api-specification.md).
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -149,14 +173,15 @@ All endpoints are JSON under `/api`. Errors look like `{ "error": { "code": "sol
 ## Tests
 
 ```bash
-npm test          # 20 unit and integration tests, in-memory database and a fake clock
+npm test                 # 20 unit and integration tests, in-memory database and a fake clock
 npm run typecheck
-npm run e2e       # full guest journey in headless Chromium, with screenshots (app must be running)
+npm run e2e              # full guest journey in headless Chromium, with screenshots (app must be running)
+npm run e2e:responsive   # 12 pages x 8 screen sizes (320-1920 px): no sideways scrolling, no tiny controls
 ```
 
 The tests cover overbooking prevention (in code and at the database level), weekend pricing, the tax stack and rounding, check-in windows, orders posting to the folio, per-service auto-advance timings, cancellation rules, spa capacity and lead time, transfer validation, early check-out with released nights and refunded spa, invoice freezing, the append-only ledger, and the housekeeping turnaround.
 
-CI (GitHub Actions) runs typecheck, tests, build and the browser journey on every push.
+CI (GitHub Actions) runs typecheck, tests, build, the browser journey and the responsive check on every push. The test catalogue and the results of testing the live site are in [Testing and test report](docs/10-testing.md).
 
 ## Deploy
 
@@ -164,12 +189,13 @@ The [`Dockerfile`](Dockerfile) runs the tests, builds, and ships a small image w
 
 **Render (free):** Dashboard → New → Blueprint → select this repository. [`render.yaml`](render.yaml) sets up the web service, health check and timer variables. On the free plan the SQLite file is wiped when the service restarts, so the demo data resets; attach a disk on a paid plan to keep it.
 
-Any Docker host works the same way (Railway, Fly.io, a VM): build the image, set the env variables, and mount a volume at `/data` to keep the database.
+Any Docker host works the same way (Railway, Fly.io, a VM): build the image, set the env variables, and mount a volume at `/data` to keep the database. Environments, CI/CD, backup and rollback are in [Deployment and DevOps](docs/04-deployment-devops.md); everyday tasks and troubleshooting are in the [runbook](docs/12-runbook.md).
 
 ## Project layout
 
 ```
 config/hotel.json          white-label configuration (the demo hotel)
+docs/                      design and project documentation (14 documents + screenshots)
 src/shared/types.ts        API types shared by server and client
 src/server/
   config/                  env + hotel config loading and validation
@@ -181,12 +207,18 @@ src/client/
   pages/                   public site pages
   pages/stay/              in-stay app
   components/, lib/        UI pieces, router, API client, formatting
-tests/                     node:test suites and the e2e journey
+  index.html, styles.css   page shell and all styles (brand colours as CSS variables)
+public/                    static files (favicon)
+scripts/                   build and dev scripts (esbuild)
+tests/                     node:test suites
+tests/e2e/                 browser journey and responsive check (Playwright)
+.github/workflows/ci.yml   CI pipeline
+Dockerfile, render.yaml    container image and Render Blueprint
 ```
 
 ## Not in this version
 
-These were scoped out of the two-day MVP and are the natural next steps:
+These were scoped out of the two-day MVP. The full list of limitations, their impact and the phased roadmap are in [Limitations and future scope](docs/13-limitations-future-scope.md).
 
 - Staff and admin console (front desk, housekeeping board, kitchen queue) replacing the auto-progress timer
 - Multi-property and multi-tenant white-label (tenant id on every table, per-tenant domains and theming)
