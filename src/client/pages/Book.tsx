@@ -59,6 +59,17 @@ export function Book({ slug }: { slug: string }) {
   if (!option) return <div className="container page"><Notice tone="error">That room type does not exist.</Notice></div>;
 
   const nights = avail.data!.nights;
+  // The form only opens for a room that is free and fits the party; otherwise the guest goes back to the list.
+  const blocked = option.available === 0 ? 'This room type is sold out for these dates.' : !option.fitsParty ? `${option.roomType.name} does not fit ${plural(s.adults, 'adult')}${s.children ? ` and ${plural(s.children, 'child', 'children')}` : ''}.` : null;
+  if (blocked) {
+    return (
+      <div className="container page stack">
+        <Notice tone="error">
+          {blocked} <Link href={`/rooms?${q}`}>See the other rooms for these dates</Link>.
+        </Notice>
+      </div>
+    );
+  }
 
   return (
     <div className="container page">
@@ -83,7 +94,7 @@ export function Book({ slug }: { slug: string }) {
                 <input required type="email" autoComplete="email" value={guest.email} onChange={(e) => setGuest({ ...guest, email: e.target.value })} />
               </Field>
               <Field label="Mobile number">
-                <input required type="tel" autoComplete="tel" placeholder="+971 50 123 4567" value={guest.phone} onChange={(e) => setGuest({ ...guest, phone: e.target.value })} />
+                <input required type="tel" minLength={6} maxLength={30} autoComplete="tel" placeholder="+971 50 123 4567" value={guest.phone} onChange={(e) => setGuest({ ...guest, phone: e.target.value })} />
               </Field>
             </div>
             <Field label="Special requests" hint="(optional)">
@@ -119,7 +130,7 @@ export function Book({ slug }: { slug: string }) {
           </label>
           <ErrorNotice error={error} />
           <button className="btn btn-accent btn-block" disabled={busy} type="submit">
-            {busy ? 'Confirming…' : `Confirm booking, ${money(option.totalMinor)}`}
+            {busy ? 'Confirming…' : `Confirm booking, ${money(option.totalMinor)} before taxes`}
           </button>
         </form>
 

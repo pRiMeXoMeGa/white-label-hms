@@ -3,8 +3,8 @@ import type { StayDto, StayInfo } from '../../shared/types';
 import { nowIso, today, type AppContext } from '../context';
 import { isUniqueViolation } from '../db/database';
 import { normalizeCode, stayCode } from '../lib/codes';
-import { conflict, notFound, unprocessable } from '../lib/errors';
-import { addDays, daysBetween } from '../lib/time';
+import { LookupError, conflict, unprocessable } from '../lib/errors';
+import { HHMM_RE, addDays, daysBetween, humanDate, toHotelLocal } from '../lib/time';
 import { getBill, postEntry } from './billing/folio';
 import { findReservation, type ReservationRow } from './reservations';
 import { getRoomType } from './rooms';
@@ -15,7 +15,7 @@ export const CheckInSchema = z.object({
   nationality: z.string().trim().min(2).max(60),
   idType: z.enum(['passport', 'emirates_id', 'national_id']),
   idNumber: z.string().trim().min(5).max(30),
-  arrivalTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  arrivalTime: z.string().regex(HHMM_RE, 'Use HH:mm, for example 15:30').optional(),
   acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Please accept the hotel terms' }) }),
 });
 export type CheckInInput = z.infer<typeof CheckInSchema>;
@@ -27,7 +27,7 @@ export function checkIn(ctx: AppContext, input: CheckInInput): ReservationRow {
 
   const t = today(ctx);
   const opensOn = addDays(r.check_in, -ctx.config.earlyCheckinDays);
-  if (t < opensOn) throw unprocessable('too_early', `Online check-in opens on ${opensOn}`);
+  if (t < opensOn) throw unprocessable('too_early', `Online check-in opens on ${humanDate(opensOn)}`);
   if (t >= r.check_out) throw unprocessable('too_late', 'This booking has already ended');
 
   const rt = getRoomType(ctx, r.room_type_id)!;
@@ -37,19 +37,24 @@ export function checkIn(ctx: AppContext, input: CheckInInput): ReservationRow {
   );
 
   return ctx.db.tx(() => {
-    let issued = false;
-    for (let attempt = 0; attempt < 5 && !issued; attempt++) {
+    let changes = -1;
+    for (let attempt = 0; attempt < 5 && changes < 0; attempt++) {
       try {
-        ctx.db.run(
+        changes = ctx.db.run(
           `UPDATE reservations SET status = 'checked_in', stay_code = ?, nationality = ?, id_type = ?, id_last4 = ?,
              arrival_time = ?, checked_in_at = ? WHERE id = ? AND status = 'confirmed'`,
           [stayCode(), input.nationality, input.idType, input.idNumber.replace(/\s/g, '').slice(-4),
             input.arrivalTime ?? null, nowIso(ctx), r.id],
-        );
-        issued = true;
+        ).changes;
       } catch (err) {
         if (!isUniqueViolation(err)) throw err;
       }
+    }
+    // Nothing changed: another request checked this booking in first, so its room charges exist.
+    if (changes !== 1) {
+      const current = ctx.db.get<ReservationRow>('SELECT * FROM reservations WHERE id = ?', [r.id])!;
+      if (current.status === 'checked_in') return current;
+      throw conflict('not_checkinable', 'This booking could not be checked in, please try again');
     }
     // Post one room charge per booked night; early departure is handled with adjustments.
     for (const n of nights) {
@@ -69,7 +74,7 @@ export function checkIn(ctx: AppContext, input: CheckInInput): ReservationRow {
 
 export function getStay(ctx: AppContext, code: string): ReservationRow {
   const r = ctx.db.get<ReservationRow>('SELECT * FROM reservations WHERE stay_code = ?', [normalizeCode(code)]);
-  if (!r) throw notFound('Stay not found. Check your Stay ID.');
+  if (!r) throw new LookupError('Stay not found. Check your Stay ID.');
   return r;
 }
 
@@ -77,6 +82,22 @@ export function getActiveStay(ctx: AppContext, code: string): ReservationRow {
   const r = getStay(ctx, code);
   if (r.status !== 'checked_in') throw conflict('stay_closed', 'This stay has been checked out');
   return r;
+}
+
+/** True once the hotel-local time has passed check-out time on the check-out date. */
+export function isStayOverdue(ctx: AppContext, r: ReservationRow): boolean {
+  const nowLocal = toHotelLocal(ctx.clock.now(), ctx.hotel.timezone);
+  return nowLocal >= `${r.check_out}T${ctx.hotel.checkOutTime}`;
+}
+
+/** New orders and bookings stop at check-out time on the check-out date. Check-out itself stays open. */
+export function assertStayOpen(ctx: AppContext, r: ReservationRow) {
+  if (isStayOverdue(ctx, r)) {
+    throw conflict(
+      'stay_ended',
+      `Your stay ended at ${ctx.hotel.checkOutTime} on ${humanDate(r.check_out)}. New requests are closed; check-out is still open.`,
+    );
+  }
 }
 
 export function toStayDto(ctx: AppContext, r: ReservationRow): StayDto {
@@ -98,6 +119,7 @@ export function toStayDto(ctx: AppContext, r: ReservationRow): StayDto {
     invoiceNumber: invoice?.number ?? null,
     feedbackGiven: Boolean(feedback),
     cardOnFile: r.card_last4 ? `${r.card_brand ?? 'Card'} ending ${r.card_last4}` : null,
+    overdue: r.status === 'checked_in' && isStayOverdue(ctx, r),
   };
 }
 
@@ -108,7 +130,7 @@ export function stayInfo(ctx: AppContext): StayInfo {
 }
 
 export const FeedbackSchema = z.object({
-  rating: z.coerce.number().int().min(1).max(5),
+  rating: z.number().int().min(1).max(5),
   comment: z.string().trim().max(1000).optional(),
 });
 

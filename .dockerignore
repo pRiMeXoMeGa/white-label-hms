@@ -5,3 +5,6 @@ test-results
 .git
 .env
 *.log
+docs
+README.md
+.github

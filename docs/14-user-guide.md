@@ -25,17 +25,17 @@ Each room type shows its size, beds, view, amenities, the **total for the chosen
 
 ### Step 2: Booking
 
-The booking form asks for the guest's name, email, mobile number, optional special requests, and the card that guarantees the booking. **Nothing is charged at this point**; the guest pays at check-out. After accepting the terms, **Confirm booking** completes it.
+The booking form asks for the guest's name, email, mobile number, optional special requests, and the card that guarantees the booking (its expiry has to be this month or later). **Nothing is charged at this point**; the guest pays at check-out. After accepting the terms, **Confirm booking, AED … before taxes** completes it. A room type that is sold out, or too small for the party, sends the guest back to the room list instead of the form.
 
 <img src="images/booking-form.png" alt="Booking form with guest details and card" width="720">
 
-The confirmation shows a **booking reference** such as `SB-VNJ9SW`. With the last name, the reference opens online check-in, booking management and Stay ID recovery.
+The confirmation shows a **booking reference** such as `SB-VNJ9SW`. With the last name, the reference opens online check-in, booking management and Stay ID recovery. Before online check-in opens, the **Check in online** button is greyed out and the opening date is shown.
 
 <img src="images/booking-confirmed.png" alt="Booking confirmation with the reference" width="720">
 
 ### Step 3: Managing or cancelling
 
-**Manage booking** in the top menu takes the reference and last name and shows the booking. From there a guest cancels (free until check-in) or, once checked in, reopens the stay after losing the Stay ID.
+**Manage booking** in the top menu takes the reference and last name and shows the booking. From there a guest cancels (free until check-in), reopens the stay after losing the Stay ID (**Open my stay**), or, after check-out, opens the invoice (**View invoice**).
 
 ### Step 4: Online check-in
 
@@ -56,19 +56,22 @@ The in-stay app is built for phones. The **Home** tab shows the room, Stay ID an
 <p>
 <img src="images/stay-home.png" alt="In-stay home with the room key card and service buttons" width="260">
 <img src="images/requests-in-progress.png" alt="An order in progress on the home screen" width="260">
+<img src="images/home-upcoming.png" alt="Home screen with orders in progress and a spa treatment and transfer under Upcoming" width="260">
 </p>
 
-Every order or booking shows a progress bar and its current status. In this demo each status moves on after about 10 seconds, and the screen updates by itself. Spa treatments and airport transfers are confirmed within seconds but listed under **Upcoming** until their booked time; they are marked completed once that time has passed. A request can be cancelled until staff start on it (spa up to 60 minutes before, transfers up to 2 hours before); any charge is removed from the bill.
+Every order or booking shows a progress bar and its current status. In this demo each status moves on after about 10 seconds, and the screen updates by itself. Spa treatments and airport transfers are confirmed within seconds but listed under **Upcoming** until their booked time; they are marked completed once that time has passed. A request can be cancelled until staff start on it (spa up to 60 minutes before, transfers up to 2 hours before); spa and transfer cancellations ask **Cancel this booking?** with **Yes, cancel** and **Keep it**. Any charge is removed from the bill. The status card shown right after ordering keeps updating as well.
+
+On the last day, once check-out time (12:00) has passed, the app shows a notice and new orders and bookings are closed; the bill and check-out stay open. If the phone loses its connection, the app keeps showing the last details under a notice and updates again once the connection is back.
 
 | Service | How it works | Cost |
 | --- | --- | --- |
 | **In-room dining** | Menu filtered by Breakfast, Starters, Mains, Desserts or Drinks; **+** adds items; the bar at the bottom shows the total; a notes field takes allergies or preferences; **Place order** sends it. Status: received → preparing → on the way → delivered | Menu prices |
-| **Laundry** | Items and quantities, optional **Express** (same day, +50%), a collection time, then **Request pickup** | Price per item |
+| **Laundry** | Items and quantities, optional **Express** (same day, +50%), a collection time (only times still ahead today; after the last one, tomorrow's), then **Request pickup** | Price per item |
 | **Housekeeping** | Clean my room, turndown, fresh towels, toiletries, water, change linen; **Send request** | Free |
 | **Amenities** | Extra pillow or blanket, baby cot, bottle warmer, iron, adapter, charger, prayer mat | Free |
 | **Report an issue** | A category (air conditioning, water, lights, TV/Wi-Fi, door, other), a description and an urgent flag | Free |
-| **Spa** | A treatment, a day, then a free start time (taken times are crossed out), optional notes, then **Book treatment** | Treatment price |
-| **Airport transfer** | Hotel to airport or airport to hotel, DXB or DWC, day and time, flight number, passengers and car type, then **Book transfer** (at least 2 hours ahead) | Fixed price per car |
+| **Spa** | A treatment, a day, then a free start time (taken times are crossed out; on the check-out day only treatments that end by 12:00), optional notes, then **Book treatment** | Treatment price |
+| **Airport transfer** | Hotel to airport or airport to hotel, DXB or DWC, day and time, flight number, passengers and car type, then **Book transfer** (at least 2 hours ahead; the button stays greyed out while there are more passengers than seats; an airport pick-up has to be before the check-out day) | Fixed price per car |
 | **Hotel info** | Wi-Fi network and password (with **Copy**), opening hours, local guide with distances, house rules, reception numbers | — |
 
 <p>
@@ -92,8 +95,9 @@ The **Bill** tab lists every room night and every order with its date, the subto
 
 **Check out** on the Home tab (or **Check out and pay** on the Bill tab) opens check-out.
 
-- For an early departure, the screen states that nights after tonight come off the bill, and that spa bookings not yet started and transfers booked for a later day are refunded.
-- Payment uses the card from the booking (shown as e.g. "Visa ending 4242") or a different card; **Pay and check out** completes it.
+- The **Total due** is worked out by the server and is exactly the amount charged.
+- For an early departure, the screen lists the unused nights that come off the bill (at least one night is always charged), and names each spa booking not yet started and each transfer booked for a later day that is cancelled and refunded.
+- Payment uses the card from the booking (shown as e.g. "Visa ending 4242") or a different card; **Pay AED … and check out** completes it.
 
 The thank-you page shows the total paid and the invoice number. **Download invoice (PDF)** produces the tax invoice, and the guest can rate the stay.
 
@@ -146,7 +150,7 @@ Locally these live in `.env` (template in `.env.example`); on Render, under the 
 
 ### Demo reset
 
-Locally `npm run seed:reset`; on Render a service restart (free plan) or one deploy with `RESET_DB_ON_START=true`.
+Locally `npm run seed:reset`; on Render **Restart service** (the free plan has no disk) or one deploy with `RESET_DB_ON_START=true`.
 
 The [runbook](12-runbook.md) covers the remaining operational tasks.
 
@@ -160,9 +164,10 @@ The [runbook](12-runbook.md) covers the remaining operational tasks.
 | Where did a booking or stay go? | The demo data is cleared when a new version is deployed; the in-stay app says so when it can't find a stay |
 | Why does check-in say it opens on a later date? | Online check-in opens on the arrival day; a stay starting today can check in straight away |
 | What if the Stay ID is lost? | **Manage booking** with the reference and last name shows **Open my stay** |
-| What does "Stay not found" mean? | The Stay ID has a typo (it is letters and numbers in three groups of four) or the data was reset |
-| What does "Too many attempts" mean? | Too many wrong codes from one network in a minute; lookups work again after the time shown |
+| What does "We could not find a stay with the ID …" mean? | The Stay ID has a typo (it is letters and numbers in three groups of four) or the data was reset |
+| What does "Too many attempts" mean? | Too many booking references or Stay IDs that do not exist were tried from one network in a minute; lookups work again after the time shown, and a Stay ID that already opened keeps working |
+| Why can't anything be ordered on the last afternoon? | New orders and bookings close at check-out time (12:00) on the check-out day; reception extends stays |
 | Why can't an order be cancelled? | Orders can be cancelled only before staff start; spa up to 60 minutes and transfers up to 2 hours before |
 | Why are there no spa times? | Times need 60 minutes' notice and there are 3 treatment rooms; later times or other days have space |
-| Why was a card refused? | The demo accepts the test card `4242 4242 4242 4242` with a future expiry such as `12/29` |
+| Why was a card refused? | The demo accepts the test card `4242 4242 4242 4242` with an expiry from the current month on, such as `12/29` |
 | Is any money taken? | No. Payments are simulated in this demo |

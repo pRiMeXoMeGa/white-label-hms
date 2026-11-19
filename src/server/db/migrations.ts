@@ -182,6 +182,20 @@ CREATE TABLE feedback (
 );
 `,
   },
+  {
+    version: 2,
+    name: 'invoice number sequence per year',
+    sql: `
+-- Invoice numbers restart at 00001 each year. The counter lives in its own row so the
+-- number is taken inside the check-out transaction, never by counting invoices.
+CREATE TABLE invoice_sequences (
+  year  TEXT PRIMARY KEY,
+  last  INTEGER NOT NULL CHECK (last >= 0)
+);
+INSERT INTO invoice_sequences (year, last)
+  SELECT substr(number, -10, 4), MAX(CAST(substr(number, -5) AS INTEGER)) FROM invoices GROUP BY 1;
+`,
+  },
 ];
 
 export function migrate(db: Db) {

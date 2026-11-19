@@ -3,8 +3,8 @@ import type { ReservationDto, ReservationStatus } from '../../shared/types';
 import { nowIso, type AppContext } from '../context';
 import { isUniqueViolation } from '../db/database';
 import { reservationCode, normalizeCode } from '../lib/codes';
-import { conflict, notFound, unprocessable } from '../lib/errors';
-import { cardBrand, isValidCardNumber, sum } from '../lib/money';
+import { LookupError, conflict, notFound, unprocessable } from '../lib/errors';
+import { cardBrand, isCardExpiryValid, isValidCardNumber, sum } from '../lib/money';
 import { addDays, daysBetween } from '../lib/time';
 import { freeRoomIds, validateStayDates } from './availability';
 import { getRoomType, priceStay } from './rooms';
@@ -44,8 +44,8 @@ export const CreateReservationSchema = z.object({
   roomTypeSlug: z.string().min(1),
   checkIn: z.string(),
   checkOut: z.string(),
-  adults: z.coerce.number().int().min(1).max(6),
-  children: z.coerce.number().int().min(0).max(6).default(0),
+  adults: z.number().int().min(1).max(6),
+  children: z.number().int().min(0).max(6).default(0),
   guest: z.object({
     firstName: name,
     lastName: name,
@@ -58,7 +58,10 @@ export const CreateReservationSchema = z.object({
   card: z.object({
     holder: name,
     number: z.string().refine(isValidCardNumber, 'Card number is not valid'),
-    expiry: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Use MM/YY'),
+    expiry: z
+      .string()
+      .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Use MM/YY')
+      .refine((v) => isCardExpiryValid(v), 'This card has expired'),
   }),
 });
 export type CreateReservationInput = z.infer<typeof CreateReservationSchema>;
@@ -71,7 +74,7 @@ export function getReservationByCode(ctx: AppContext, code: string): Reservation
 export function findReservation(ctx: AppContext, code: string, lastName: string): ReservationRow {
   const r = getReservationByCode(ctx, code);
   if (!r || r.last_name.trim().toLowerCase() !== lastName.trim().toLowerCase()) {
-    throw notFound('We could not find a booking with that reference and last name');
+    throw new LookupError('We could not find a booking with that reference and last name');
   }
   return r;
 }
@@ -94,7 +97,7 @@ export function toReservationDto(ctx: AppContext, r: ReservationRow): Reservatio
     roomTotalMinor: r.room_total_minor,
     cardLast4: r.card_last4,
     canCheckInFrom: addDays(r.check_in, -ctx.config.earlyCheckinDays),
-    stayCode: r.status === 'checked_in' ? r.stay_code : null,
+    stayCode: r.status === 'checked_in' || r.status === 'checked_out' ? r.stay_code : null,
     createdAt: r.created_at,
   };
 }

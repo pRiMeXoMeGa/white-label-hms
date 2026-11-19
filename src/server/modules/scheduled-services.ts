@@ -3,7 +3,7 @@ import type { SpaSlotDto, SpaTreatmentDto, TransferOptions } from '../../shared/
 import { today, type AppContext } from '../context';
 import { isUniqueViolation } from '../db/database';
 import { badRequest, conflict, notFound } from '../lib/errors';
-import { addMinutesLocal, isIsoDate, isLocalDateTime, minutesOfDay, toHotelLocal } from '../lib/time';
+import { addMinutesLocal, humanDate, isIsoDate, isLocalDateTime, minutesOfDay, toHotelLocal } from '../lib/time';
 import type { ReservationRow } from './reservations';
 import { insertRequest } from './requests/requests';
 
@@ -60,7 +60,9 @@ export function spaSlots(ctx: AppContext, r: ReservationRow, date: string, treat
   const { opensAt, closesAt, slotMinutes, minLeadMinutes } = ctx.hotel.spa;
   const earliest = addMinutesLocal(toHotelLocal(ctx.clock.now(), ctx.hotel.timezone), minLeadMinutes);
   const slots: SpaSlotDto[] = [];
-  for (let m = minutesOfDay(opensAt); m + t.duration_min <= minutesOfDay(closesAt); m += slotMinutes) {
+  // On the check-out day a treatment has to finish by check-out time.
+  const lastEnd = date === r.check_out ? Math.min(minutesOfDay(closesAt), minutesOfDay(ctx.hotel.checkOutTime)) : minutesOfDay(closesAt);
+  for (let m = minutesOfDay(opensAt); m + t.duration_min <= lastEnd; m += slotMinutes) {
     const start = `${date}T${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     const available = start >= earliest && freeResource(ctx, slotUnits(ctx, start, t.duration_min)) !== null;
     slots.push({ start, end: addMinutesLocal(start, t.duration_min), available });
@@ -69,7 +71,7 @@ export function spaSlots(ctx: AppContext, r: ReservationRow, date: string, treat
 }
 
 export const SpaBookingSchema = z.object({
-  treatmentId: z.coerce.number().int().positive(),
+  treatmentId: z.number().int().positive(),
   start: z.string().refine(isLocalDateTime, 'start must be YYYY-MM-DDTHH:mm'),
   notes: z.string().trim().max(300).optional(),
 });
@@ -77,6 +79,9 @@ export const SpaBookingSchema = z.object({
 export function bookSpa(ctx: AppContext, r: ReservationRow, input: z.infer<typeof SpaBookingSchema>) {
   const t = treatment(ctx, input.treatmentId);
   const slot = spaSlots(ctx, r, input.start.slice(0, 10), t.id).find((s) => s.start === input.start);
+  if (!slot && input.start.slice(0, 10) === r.check_out && addMinutesLocal(input.start, t.duration_min).slice(11) > ctx.hotel.checkOutTime) {
+    throw badRequest(`On your check-out day, treatments need to finish by ${ctx.hotel.checkOutTime}`);
+  }
   if (!slot) throw badRequest('That start time is outside spa opening hours');
   if (!slot.available) throw conflict('slot_taken', 'That time is no longer available, please pick another slot');
 
@@ -122,7 +127,7 @@ export const TransferSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z0-9]{2}\s?\d{1,4}[A-Z]?$/, 'Flight number looks like EK 203'),
-  passengers: z.coerce.number().int().min(1).max(12),
+  passengers: z.number().int().min(1).max(12),
   notes: z.string().trim().max(300).optional(),
 });
 
@@ -135,6 +140,10 @@ export function bookTransfer(ctx: AppContext, r: ReservationRow, input: z.infer<
 
   const date = input.pickupAt.slice(0, 10);
   if (date < today(ctx) || date > r.check_out) throw badRequest('Pick a time between now and your check-out day');
+  // An arrival pick-up only makes sense while the guest still has nights left at the hotel.
+  if (input.direction === 'from_airport' && date >= r.check_out) {
+    throw badRequest(`Airport pick-ups need to be before your check-out day (${humanDate(r.check_out)})`);
+  }
   const earliest = addMinutesLocal(toHotelLocal(ctx.clock.now(), ctx.hotel.timezone), ctx.hotel.transfers.minLeadMinutes);
   if (input.pickupAt < earliest) {
     throw badRequest(`Transfers need at least ${ctx.hotel.transfers.minLeadMinutes / 60} hours' notice`);

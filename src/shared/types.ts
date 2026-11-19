@@ -109,6 +109,8 @@ export interface StayDto {
   feedbackGiven: boolean;
   /** e.g. "Visa ending 4242": the card that guaranteed the booking. */
   cardOnFile: string | null;
+  /** Checked in and past check-out time on the check-out date: new requests are closed. */
+  overdue: boolean;
 }
 
 export interface StayInfo {
@@ -206,6 +208,18 @@ export interface BillDto {
   balanceMinor: number;
   isFinal: boolean;
   notes: string[];
+}
+
+/** What check-out would do right now, worked out without changing anything. */
+export interface CheckoutPreviewDto {
+  bill: BillDto;
+  /** The date the stay ends on the invoice (earlier than booked for an early departure). */
+  checkOut: string;
+  /** The amount the payment card is charged at check-out. */
+  dueMinor: number;
+  nightsReleased: number;
+  /** Titles of spa treatments and transfers that check-out releases and refunds. */
+  servicesReleased: string[];
 }
 
 export interface InvoiceDto {

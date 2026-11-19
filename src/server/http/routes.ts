@@ -5,7 +5,7 @@ import { HttpError, badRequest } from '../lib/errors';
 import { searchAvailability } from '../modules/availability';
 import { renderInvoicePdf } from '../modules/billing/invoice-pdf';
 import { getBill } from '../modules/billing/folio';
-import { CheckoutSchema, checkout, getInvoice } from '../modules/checkout';
+import { CheckoutSchema, checkout, checkoutPreview, getInvoice } from '../modules/checkout';
 import {
   CreateReservationSchema,
   cancelReservation,
@@ -32,7 +32,17 @@ import {
   spaSlots,
   transferOptions,
 } from '../modules/scheduled-services';
-import { CheckInSchema, FeedbackSchema, checkIn, getActiveStay, getStay, leaveFeedback, stayInfo, toStayDto } from '../modules/stays';
+import {
+  CheckInSchema,
+  FeedbackSchema,
+  assertStayOpen,
+  checkIn,
+  getActiveStay,
+  getStay,
+  leaveFeedback,
+  stayInfo,
+  toStayDto,
+} from '../modules/stays';
 import { Router, created, parse } from './router';
 
 const CATALOG_SERVICES = ['food', 'laundry', 'amenity', 'housekeeping'] as const;
@@ -143,12 +153,14 @@ export function buildRouter(ctx: AppContext): Router {
 
   r.post('/api/stays/:code/orders/:service', ({ params, body }) => {
     const stay = getActiveStay(ctx, params.code!);
+    assertStayOpen(ctx, stay);
     const service = parse(CatalogService, params.service);
     return created(toRequestDto(ctx, createCatalogOrder(ctx, stay, service, parse(CatalogOrderSchema, body))));
   });
 
   r.post('/api/stays/:code/maintenance', ({ params, body }) => {
     const stay = getActiveStay(ctx, params.code!);
+    assertStayOpen(ctx, stay);
     return created(toRequestDto(ctx, reportIssue(ctx, stay, parse(MaintenanceSchema, body))));
   });
 
@@ -160,11 +172,13 @@ export function buildRouter(ctx: AppContext): Router {
 
   r.post('/api/stays/:code/spa', ({ params, body }) => {
     const stay = getActiveStay(ctx, params.code!);
+    assertStayOpen(ctx, stay);
     return created(toRequestDto(ctx, bookSpa(ctx, stay, parse(SpaBookingSchema, body))));
   });
 
   r.post('/api/stays/:code/transfers', ({ params, body }) => {
     const stay = getActiveStay(ctx, params.code!);
+    assertStayOpen(ctx, stay);
     return created(toRequestDto(ctx, bookTransfer(ctx, stay, parse(TransferSchema, body))));
   });
 
@@ -176,6 +190,8 @@ export function buildRouter(ctx: AppContext): Router {
   });
 
   r.get('/api/stays/:code/bill', ({ params }) => getBill(ctx, getStay(ctx, params.code!)));
+
+  r.get('/api/stays/:code/checkout-preview', ({ params }) => checkoutPreview(ctx, params.code!));
 
   r.post('/api/stays/:code/checkout', ({ params, body }) => checkout(ctx, params.code!, parse(CheckoutSchema, body)));
 

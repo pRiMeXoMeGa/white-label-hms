@@ -10,7 +10,7 @@ The targets I set for the MVP:
 | --- | --- | --- |
 | API latency | p95 < 200 ms for a single hotel | Local runs log 1–3 ms per request; SQLite queries are indexed |
 | Status freshness | A status change visible within 6 s of becoming due | Scheduler checks every 2 s, the app polls every 4 s (1 s ticks in CI) |
-| First load | < 300 KB transferred (gzip) | One JS bundle (~270 KB raw), one CSS file (~19 KB raw), no web fonts or images |
+| First load | < 300 KB transferred | One JS bundle (~273 KB uncompressed, ~82 KB gzip) and one CSS file (~19 KB, ~5 KB gzip), about 290 KB uncompressed in total; no source maps, web fonts or images |
 | Capacity | One hotel (17 rooms in the demo; hundreds is fine) | Single process, single SQLite file |
 | Cold start (Render free) | None in normal use | The keep-awake ping every 10 minutes stops Render from idling the service; a cold start (~1 min) happens only after a deploy |
 
@@ -20,20 +20,20 @@ The targets I set for the MVP:
 - **Indexes on every lookup path:** booking reference, Stay ID, requests and folio by reservation, a partial index for due requests, primary-key probes for room-nights and spa slots.
 - **Small payloads:** list endpoints return only what the screen shows; money as integers.
 - **Static assets:** content-hashed file names served with `Cache-Control: immutable` for a year; `index.html` is cached in memory in production.
-- **Polling pauses** when the browser tab is hidden.
+- **Polling pauses** when the browser tab is hidden, and a poll is skipped while the previous request is still running, so a slow connection never stacks requests.
 - **The scheduler** scans only the partial index (`next_transition_at IS NOT NULL`) and caps each tick at 500 requests.
 
 ## 9.3 Current limits
 
 | Limit | Why | When it matters |
 | --- | --- | --- |
-| One instance | SQLite file + in-process scheduler + in-memory rate limiter | High availability or more than one server |
+| One instance | SQLite file + in-process scheduler + in-memory rate limiter (at most 50 000 keys) | High availability or more than one server |
 | One writer at a time | SQLite serialises writes | Hundreds of writes per second (far beyond one hotel) |
-| Polling | Each open in-stay app makes ~15 requests per minute | Thousands of concurrent guests |
+| Polling | An open in-stay home screen makes ~19 requests per minute (requests every 4 s, stay summary every 15 s) | Thousands of concurrent guests |
 | Synchronous PDF rendering | Rendered per download | Bulk invoice exports |
 | Ephemeral disk on the free plan | Data lost on restart | Any real use |
 
-Rough sizing: a 200-room hotel with every guest's app open generates about 200 × 15 = 3,000 lightweight reads per minute (50/s). SQLite and Node handle this on one small instance.
+Rough sizing: a 200-room hotel with every guest's app open generates about 200 × 19 ≈ 3,800 lightweight reads per minute (about 63/s). SQLite and Node handle this on one small instance. The general request budget is per Stay ID, so a whole hotel behind one Wi-Fi address does not hit a shared limit.
 
 ## 9.4 Scaling path
 

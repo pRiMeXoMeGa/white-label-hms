@@ -20,7 +20,7 @@ flowchart TB
   Conf["/booking/:code<br/>confirmation"]
   Manage["/manage<br/>find, cancel, recover Stay ID"]
   CheckIn["/check-in<br/>ID details → room + Stay ID"]
-  Entry["/stay<br/>enter Stay ID"]
+  Entry["/stay or /stay/<br/>enter Stay ID"]
 
   subgraph App["In-stay app /stay/:stayId (mobile shell, tab bar)"]
     SH["Home<br/>key card, quick actions, in progress, bill"]
@@ -57,19 +57,19 @@ flowchart TB
 | --- | --- | --- | --- |
 | Home | Start a booking or open a stay | Hotel name as headline, date and guest search, 4-step journey, room cards with "from" price | Loading |
 | Rooms | Compare and choose | Search bar, one row per room type: illustration, facts, amenities, total, rooms left, Select | Sold out, too small for party, "only N left", invalid dates |
-| Book | Capture guest and card | Two fieldsets, nightly price breakdown, terms, total on the button | Validation errors, sold out in the meantime |
-| Confirmation | Hand over the reference | Large reference, check-in status, next actions | Opened without session data → link to Manage booking |
+| Book | Capture guest and card | Two fieldsets, nightly price breakdown, terms, room total before taxes on the button | Validation errors, sold out in the meantime, sold out or too small when opened from a link (back to the room list) |
+| Confirmation | Hand over the reference | Large reference, check-in status, next actions | Check-in not open yet (button disabled, opening date shown), opened without session data → link to Manage booking |
 | Manage booking | Self-service | Lookup form; booking card with status tag; cancel with inline confirmation; Stay ID recovery | Not found, cancelled, checked in |
 | Online check-in | Register and get the room | Lookup + ID fieldsets; result shows the **key card** | Too early, already checked in, ended |
-| Stay home | Hub of the stay | Key card (room number, Stay ID, check-out), 6 quick tiles, in-progress requests, upcoming spa and transfer bookings (static progress bar until their booked time), current bill, check-out | Nothing in progress (empty state), checked out (redirect) |
-| Dining / Laundry | Order with a cart | Section chips, item rows with quantity steppers, pinned cart bar with total | Empty cart, order placed (status card) |
+| Stay home | Hub of the stay | Key card (room number, Stay ID, check-out), 6 quick tiles, in-progress requests, upcoming spa and transfer bookings (static progress bar until their booked time), current bill, check-out | Nothing in progress (empty state, which points to Upcoming when it has bookings), requests failed to load (message and Try again), lost connection (last data kept under a notice), past check-out time (notice that new requests are closed), checked out (redirect) |
+| Dining / Laundry | Order with a cart | Section chips, item rows with quantity steppers, pinned cart bar with total; laundry pickup times still ahead today | Empty cart, order placed (live status card) |
 | Housekeeping / Amenities | Free requests | Grouped items with steppers, notes, send button | Nothing selected |
-| Report an issue | Get something fixed | Category radio cards, description, urgent | Sent (status card) |
+| Report an issue | Get something fixed | Category radio cards, description, urgent | Sent (live status card) |
 | Spa | Book a slot | Treatment radio cards with price, day chips, slot grid (taken slots struck through), summary and book | No free times that day, slot taken meanwhile |
-| Airport transfer | Book a car | Direction chips, airport, day/time, flight, passengers, car radio cards, price on button | Not enough notice, too many passengers |
+| Airport transfer | Book a car | Direction chips, airport, day/time, flight, passengers, car radio cards, price on button | Not enough notice, too many passengers (button disabled), pick-up on the check-out day |
 | Hotel info | Answer common questions | Wi-Fi with copy button, hours, local guide with distances, house rules, contacts | — |
 | Bill | Transparency | Balance, every line with date and quantity, subtotal, each tax, refunds in green | Final bill after check-out |
-| Check out | Pay and leave | Early-departure and refund notices, total due, itemised toggle, card on file or new card | Already checked out |
+| Check out | Pay and leave | Server-worked-out total due, notices listing released nights and bookings, itemised toggle, card on file or new card, "Pay AED X and check out" | Already checked out, expired card |
 | Thank you | Close the loop | Total paid, invoice number, PDF download, 1–5 rating and comment | Feedback already sent |
 
 The [user guide](14-user-guide.md) has screenshots of each screen.
@@ -111,35 +111,40 @@ I inject the colours **server-side** into the page head, so there is no flash of
 | Progress bar per request, current step animated | Request cards | Status at a glance; animation shows something is happening |
 | Radio cards with price on the right | Spa, transfer, maintenance, payment | Large tap targets; price is part of the choice |
 | Slot grid with struck-through taken slots | Spa | Shows availability without extra text |
-| Inline confirmation instead of a pop-up | Cancel booking | No modal; clear consequence text |
-| Explicit notices before irreversible actions | Check-out | Tells the guest about released nights and refunds before paying |
-| Polling with no reload | Stay home, requests, bill | Live updates without user action |
+| Inline confirmation instead of a pop-up | Cancel booking, cancel a spa or transfer booking | No modal; clear consequence text |
+| Explicit notices before irreversible actions | Check-out | Lists the released nights and bookings, worked out by the server, before paying |
+| Polling with no reload | Stay home, requests, status card after ordering, bill, check-out total | Live updates without user action |
 
 ## 7.7 Writing style
 
 The rules I followed for all interface text:
 
-- Sentence case everywhere, plain verbs: "Check availability", "Place order", "Pay and check out".
+- Sentence case everywhere, plain verbs: "Check availability", "Place order", "Pay AED 1,590.19 and check out".
 - Buttons say what happens; the same action keeps the same name across the flow.
 - Errors explain what to do: "Pick a time between now and your check-out day", "Transfers need at least 2 hours' notice".
-- Empty states invite action: "Nothing in progress. Your orders and bookings will show here with live status."
+- Empty states invite action: "Nothing in progress. Your orders and requests will show here with live status."
 
 ## 7.8 Responsive behaviour and accessibility
 
 | Breakpoint | Behaviour |
 | --- | --- |
-| ≥ 900 px | Two-column booking and confirmation (form + summary) |
+| > 900 px | Two-column booking and confirmation (form + summary) |
 | ≤ 900 px | Booking and confirmation stack into one column |
 | ≤ 820 px | Hero illustration hidden; search fields and journey steps in 2 columns |
+| ≤ 760 px | Room results stack: price and Select move under the room details |
 | ≤ 680 px | Header becomes two rows: hotel name, then the menu as one swipeable line |
-| ≤ 520 px | Phone layout for the search form; the in-stay app is always max 520 px wide with a fixed tab bar |
-| ≤ 400 px | Dates on their own rows; service tiles in 2 columns; totals shrink to fit |
+| ≤ 520 px | Hero search in 2 columns |
+| ≤ 400 px | Dates on their own rows; service tiles in 2 columns; narrower page margins |
+
+The in-stay app is always at most 520 px wide, with a fixed tab bar.
 
 Checked automatically at 320, 375, 390, 430, 768, 1024, 1366 and 1920 px wide (`npm run e2e:responsive`).
 
 - All inputs have visible labels; groups use `fieldset`/`legend`.
 - Visible focus ring (`3px` accent outline) on every interactive element.
-- Toggle buttons expose `aria-pressed`; request status regions are `aria-live`; the progress bar has hidden text per step.
+- Toggle buttons expose `aria-pressed`; one polite live region announces request status changes (cards themselves are not live regions, so a page of cards is not read out on every poll); the progress bar has hidden text per step and `aria-current="step"` on the current one.
+- After each navigation, focus moves to the new page's heading.
+- Muted text is 72% ink on white (about 6.4:1, and 5.5:1 on the sea-glass background).
 - `prefers-reduced-motion` disables the progress animation and transitions.
 - Colour is never the only signal: taken slots are also struck through, refunds also have a minus sign.
 

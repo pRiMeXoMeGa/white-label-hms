@@ -19,6 +19,13 @@ export function navigate(to: string, opts: { replace?: boolean } = {}) {
   else window.history.pushState(null, '', to);
   window.scrollTo(0, 0);
   emit();
+  // Move keyboard and screen-reader focus to the new page's heading once it has rendered.
+  window.setTimeout(() => {
+    const target = document.querySelector<HTMLElement>('h1') ?? document.querySelector<HTMLElement>('main, .app');
+    if (!target) return;
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  }, 50);
 }
 
 export function useLocation() {
@@ -38,7 +45,14 @@ export function matchPath(pattern: string, pathname: string): Record<string, str
   );
   const m = re.exec(pathname);
   if (!m) return null;
-  return Object.fromEntries(keys.map((k, i) => [k, decodeURIComponent(m[i + 1] ?? '')]));
+  const decode = (v: string) => {
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v;
+    }
+  };
+  return Object.fromEntries(keys.map((k, i) => [k, decode(m[i + 1] ?? '')]));
 }
 
 export function Link({ href, onClick, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {

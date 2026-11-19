@@ -5,7 +5,7 @@ import { ApiError, post, useApi } from '../../lib/api';
 import { addDays, localDateTime, money, shortDate } from '../../lib/format';
 import { useHotel } from '../../lib/hotel';
 import { StayHomeButton } from './CatalogOrder';
-import { RequestCard } from './RequestCard';
+import { LiveRequestCard } from './RequestCard';
 import { BackLink, useStay } from './StayApp';
 
 interface Options {
@@ -54,7 +54,7 @@ export function Spa() {
       <div className="stack">
         <BackLink>Home</BackLink>
         <h1 style={{ fontSize: 'var(--step-2)' }}>Spa booked</h1>
-        <RequestCard r={booked} onChange={() => undefined} />
+        <LiveRequestCard r={booked} />
         <p className="small muted">Please arrive 10 minutes early at the spa on level 2. Free cancellation in the app up to {options.data!.spa.minLeadMinutes} minutes before.</p>
         <StayHomeButton />
       </div>

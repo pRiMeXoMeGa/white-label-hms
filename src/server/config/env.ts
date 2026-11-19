@@ -1,14 +1,21 @@
 import { z } from 'zod';
 import type { ServiceType } from '../../shared/types';
 
+// Booleans are case-insensitive (TRUE, Yes, 1).
 const bool = z
-  .enum(['true', 'false', '1', '0', 'yes', 'no'])
+  .string()
+  .transform((v) => v.trim().toLowerCase())
+  .pipe(z.enum(['true', 'false', '1', '0', 'yes', 'no']))
   .transform((v) => v === 'true' || v === '1' || v === 'yes');
 
 const seconds = z.coerce.number().int().min(1).max(86_400);
 
 const EnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  // Any other value (e.g. "staging") runs with production behaviour.
+  NODE_ENV: z
+    .string()
+    .default('development')
+    .transform((v) => (v === 'development' || v === 'test' ? v : 'production') as 'development' | 'production' | 'test'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
   HOST: z.string().default('0.0.0.0'),
   DATABASE_PATH: z.string().default('./data/hms.sqlite'),
@@ -32,6 +39,8 @@ const EnvSchema = z.object({
   // Allow online check-in N days before the arrival date (0 = arrival day only).
   EARLY_CHECKIN_DAYS: z.coerce.number().int().min(0).max(30).default(0),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(30),
+  // Number of proxies in front of the app that append to X-Forwarded-For (Render: 1). 0 = use the socket address.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
 
   // Keep-awake: free hosts (Render) stop an idle service after 15 minutes, which wipes an
   // on-container SQLite file. The app requests its own public URL on an interval so it never idles.
@@ -56,11 +65,14 @@ export interface AppConfig {
   housekeepingTurnaroundSeconds: number;
   earlyCheckinDays: number;
   rateLimitPerMinute: number;
+  trustProxyHops: number;
   keepAlive: { url: string | null; minutes: number };
 }
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
-  const parsed = EnvSchema.safeParse(source);
+  // Empty values (e.g. `KEEP_ALIVE_URL=`) count as unset.
+  const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v.trim() !== ''));
+  const parsed = EnvSchema.safeParse(cleaned);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${issues}`);
@@ -91,6 +103,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     housekeepingTurnaroundSeconds: e.HOUSEKEEPING_TURNAROUND_SECONDS,
     earlyCheckinDays: e.EARLY_CHECKIN_DAYS,
     rateLimitPerMinute: e.RATE_LIMIT_PER_MINUTE,
+    trustProxyHops: e.TRUST_PROXY_HOPS,
     keepAlive: { url: e.KEEP_ALIVE_URL ?? e.RENDER_EXTERNAL_URL ?? null, minutes: e.KEEP_ALIVE_MINUTES },
   };
 }

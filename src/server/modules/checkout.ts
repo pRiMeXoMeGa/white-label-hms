@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import type { InvoiceDto } from '../../shared/types';
+import type { CheckoutPreviewDto, InvoiceDto } from '../../shared/types';
 import { nowIso, today, type AppContext } from '../context';
 import { conflict, notFound } from '../lib/errors';
-import { cardBrand, isValidCardNumber } from '../lib/money';
+import { sum } from '../lib/money';
+import { cardBrand, isCardExpiryValid, isValidCardNumber } from '../lib/money';
 import { addDays, toHotelLocal } from '../lib/time';
 import { computeLiveBill, postEntry } from './billing/folio';
 import type { ReservationRow } from './reservations';
@@ -15,7 +16,10 @@ export const CheckoutSchema = z.discriminatedUnion('method', [
     method: z.literal('new_card'),
     holder: z.string().trim().min(1).max(60),
     number: z.string().refine(isValidCardNumber, 'Card number is not valid'),
-    expiry: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Use MM/YY'),
+    expiry: z
+      .string()
+      .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Use MM/YY')
+      .refine((v) => isCardExpiryValid(v), 'This card has expired'),
   }),
 ]);
 export type CheckoutInput = z.infer<typeof CheckoutSchema>;
@@ -28,6 +32,46 @@ export type CheckoutInput = z.infer<typeof CheckoutSchema>;
  * 4. close the stay and mark the room dirty for housekeeping
  */
 export function checkout(ctx: AppContext, stayCodeInput: string, input: CheckoutInput): InvoiceDto {
+  return runCheckout(ctx, stayCodeInput, input).invoice;
+}
+
+interface CheckoutOutcome {
+  invoice: InvoiceDto;
+  dueMinor: number;
+  nightsReleased: number;
+  servicesReleased: string[];
+}
+
+class PreviewRollback extends Error {
+  constructor(readonly outcome: CheckoutOutcome) {
+    super('checkout preview');
+  }
+}
+
+/**
+ * Runs the real check-out inside a transaction and rolls it back, so the amount shown on the
+ * check-out page is exactly what check-out would charge (released nights and services included).
+ */
+export function checkoutPreview(ctx: AppContext, stayCodeInput: string): CheckoutPreviewDto {
+  try {
+    ctx.db.tx(() => {
+      throw new PreviewRollback(runCheckout(ctx, stayCodeInput, { method: 'card_on_file' }));
+    });
+  } catch (err) {
+    if (!(err instanceof PreviewRollback)) throw err;
+    const o = err.outcome;
+    return {
+      bill: { ...o.invoice.bill, isFinal: false },
+      checkOut: o.invoice.checkOut,
+      dueMinor: o.dueMinor,
+      nightsReleased: o.nightsReleased,
+      servicesReleased: o.servicesReleased,
+    };
+  }
+  throw new Error('unreachable');
+}
+
+function runCheckout(ctx: AppContext, stayCodeInput: string, input: CheckoutInput): CheckoutOutcome {
   const r = getActiveStay(ctx, stayCodeInput);
 
   const paymentLabel =
@@ -66,6 +110,7 @@ export function checkout(ctx: AppContext, stayCodeInput: string, input: Checkout
       [r.id, nowLocal],
     );
     for (const s of futureSpa) voidRequest(ctx, r, s, 'Released at check-out');
+    const servicesReleased = futureSpa.map((s) => s.title);
 
     // Leaving early: airport transfers booked for a later day no longer apply.
     if (t < r.check_out) {
@@ -74,6 +119,7 @@ export function checkout(ctx: AppContext, stayCodeInput: string, input: Checkout
         [r.id, t],
       );
       for (const s of laterTransfers) voidRequest(ctx, r, s, 'Released at check-out');
+      servicesReleased.push(...laterTransfers.map((s) => s.title));
     }
 
     // 3. Taxes, payment, invoice.
@@ -87,7 +133,11 @@ export function checkout(ctx: AppContext, stayCodeInput: string, input: Checkout
     }
 
     const year = t.slice(0, 4);
-    const seq = (ctx.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM invoices')?.n ?? 0) + 1;
+    const seq = ctx.db.get<{ last: number }>(
+      `INSERT INTO invoice_sequences (year, last) VALUES (?, 1)
+       ON CONFLICT (year) DO UPDATE SET last = last + 1 RETURNING last`,
+      [year],
+    )!.last;
     const number = `${ctx.hotel.brand.codePrefix}-INV-${year}-${String(seq).padStart(5, '0')}`;
     const room = ctx.db.get<{ number: string }>('SELECT number FROM rooms WHERE id = ?', [r.room_id])!;
     const invoice: InvoiceDto = {
@@ -111,14 +161,17 @@ export function checkout(ctx: AppContext, stayCodeInput: string, input: Checkout
       number, r.id, now, bill.totalMinor, JSON.stringify(invoice),
     ]);
 
-    // 4. Close the stay.
+    // 4. Close the stay. An early departure also shortens the reservation to the nights charged.
+    const effectiveCheckOut = t < r.check_out ? keepUntil : r.check_out;
+    const releasedMinor = sum(released.map((n) => n.rate_minor));
     const closed = ctx.db.run(
-      "UPDATE reservations SET status = 'checked_out', checked_out_at = ? WHERE id = ? AND status = 'checked_in'",
-      [now, r.id],
+      `UPDATE reservations SET status = 'checked_out', checked_out_at = ?, check_out = ?, room_total_minor = room_total_minor - ?
+       WHERE id = ? AND status = 'checked_in'`,
+      [now, effectiveCheckOut, releasedMinor, r.id],
     );
     if (closed.changes !== 1) throw conflict('stay_closed', 'This stay has already been checked out');
     ctx.db.run("UPDATE rooms SET housekeeping_status = 'dirty', dirty_since = ? WHERE id = ?", [now, r.room_id]);
-    return invoice;
+    return { invoice, dueMinor: due, nightsReleased: released.length, servicesReleased };
   });
 }
 

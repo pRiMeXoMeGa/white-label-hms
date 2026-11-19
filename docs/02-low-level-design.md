@@ -15,9 +15,9 @@ src/
     config/env.ts                 env vars -> AppConfig (Zod), incl. auto-advance timers
     config/hotel.ts               hotel.json -> HotelConfig (Zod), white-label surface
     db/database.ts                Db wrapper over node:sqlite: run/get/all, tx() with savepoints
-    db/migrations.ts              numbered forward-only migrations
+    db/migrations.ts              numbered forward-only migrations (v1 schema, v2 invoice counter)
     db/seed.ts                    rooms + catalogue from hotel.json into an empty DB
-    http/router.ts                tiny regex router, parse(schema, data) -> 400 on invalid input
+    http/router.ts                tiny regex router, parse(schema, data) -> 400 on invalid input; blank strings dropped
     http/routes.ts                every endpoint, thin: parse -> module call -> DTO
     http/server.ts                node:http server, JSON body, errors, rate limits, headers, static + SPA
     lib/                          errors, money, time, codes, rate-limit (pure helpers)
@@ -25,7 +25,7 @@ src/
       rooms.ts                    room types, nightly pricing
       availability.ts             date validation, free rooms, search
       reservations.ts             create / find / cancel booking, DTO
-      stays.ts                    check-in, Stay lookup, stay info, feedback
+      stays.ts                    check-in, Stay lookup, end-of-stay rule, stay info, feedback
       requests/workflows.ts       per-service state machines
       requests/requests.ts        create orders, maintenance, list, cancel, void, auto-advance
       requests/scheduler.ts       interval loop that calls advanceDueRequests()
@@ -33,11 +33,11 @@ src/
       billing/folio.ts            post entries, live bill, frozen bill
       billing/tax.ts              tax rules engine (pure)
       billing/invoice-pdf.ts      PDF rendering
-      checkout.ts                 express check-out transaction, invoice
+      checkout.ts                 express check-out transaction, check-out preview, invoice
   client/
     main.tsx, App.tsx             entry and top-level routing
-    lib/                          router, API client + useApi hook, formatting, hotel context
-    components/                   layout, search form, illustrations, icons, form pieces
+    lib/                          router, API client + useApi hook, formatting, hotel context, live region
+    components/                   layout, search form, illustrations, icons, form pieces, error boundary
     pages/                        public site pages
     pages/stay/                   in-stay app pages
 ```
@@ -78,7 +78,7 @@ stateDiagram-v2
 | → confirmed | dates valid, party fits room type, a room is free for every night, card passes Luhn | `room_nights` rows inserted, one per night |
 | confirmed → cancelled | status is `confirmed` | `room_nights` deleted (inventory released) |
 | confirmed → checked_in | `today ≥ check_in − EARLY_CHECKIN_DAYS` and `today < check_out` | Stay ID issued; one room charge per night posted to folio |
-| checked_in → checked_out | status is `checked_in` (conditional update) | see [check-out sequence](#check-out) |
+| checked_in → checked_out | status is `checked_in` (conditional update) | see [check-out sequence](#check-out); an early departure also moves `check_out` to the last charged date and lowers `room_total_minor` |
 
 ### Service request workflows
 
@@ -95,6 +95,8 @@ I modelled each service as a linear state machine in `requests/workflows.ts`. `a
 | transfer | requested →delay→ confirmed →delay→ driver_assigned →**pickup + drive time**→ completed | yes | until 120 min before pickup |
 
 `cancelled` is a separate terminal state reachable from any non-final stage when the rule allows.
+
+**End-of-stay rules.** Once the hotel-local time passes `checkOutTime` on the check-out date, the stay is *overdue*: new orders, maintenance reports, spa and transfer bookings answer `409 stay_ended`, `StayDto.overdue` is `true`, and check-out stays open. On the check-out date itself a spa treatment has to finish by `checkOutTime`, an airport pick-up (`from_airport`) is refused, and a drop-off (`to_airport`) is allowed until the end of the day. A catalogue order is capped at 20 of each item after duplicate lines are merged.
 
 ```mermaid
 stateDiagram-v2
@@ -121,7 +123,7 @@ every AUTO_ADVANCE_TICK_SECONDS:
            : advance(stage') == 'scheduled_end' ? scheduled_end_utc
            : now + delay(service)
     UPDATE ... SET stage = stage', status = ..., next_transition_at = next'
-      WHERE id = r.id AND stage = r.stage        -- compare-and-set: never double-advances
+      WHERE id = r.id AND stage = r.stage AND status <> 'cancelled'   -- compare-and-set: never double-advances or revives a cancel
     if 1 row changed: INSERT service_request_events(status, now)
   also: rooms dirty for >= HOUSEKEEPING_TURNAROUND_SECONDS -> clean
 ```
@@ -175,7 +177,10 @@ sequenceDiagram
   else window not open / stay ended
     S-->>API: 422 too_early / too_late
   else ok
-    S->>DB: BEGIN, then UPDATE status=checked_in, stay_code=random, id_last4 only
+    S->>DB: BEGIN, then UPDATE status=checked_in, stay_code=random, id_last4 only WHERE status=confirmed
+    alt no row changed (checked in by a parallel request)
+      S-->>API: the current stay, no new charges
+    end
     S->>DB: INSERT folio charge per room night
     S->>DB: COMMIT
     S-->>API: StayDto (room number, Stay ID, balance)
@@ -218,7 +223,7 @@ sequenceDiagram
   participant SP as scheduled-services.ts
   participant DB as SQLite
   G->>API: GET /stays/:id/spa/slots?date&treatmentId
-  API->>SP: spaSlots(): for each 30-min start in opening hours,<br/>available if start >= now + 60 min and some room has all units free
+  API->>SP: spaSlots(): for each 30-min start in opening hours<br/>(on the check-out day, ending by check-out time),<br/>available if start >= now + 60 min and some room has all units free
   API-->>G: slots[]
   G->>API: POST /stays/:id/spa {treatmentId, start}
   SP->>DB: BEGIN, then find treatment room with all slot units free
@@ -243,12 +248,15 @@ sequenceDiagram
   CO->>DB: if early: transfers on a later day: void
   CO->>CO: computeLiveBill() -> taxes
   CO->>DB: INSERT tax entries, INSERT payment entry (-total)
-  CO->>DB: INSERT invoice (sequential number, full JSON snapshot)
-  CO->>DB: UPDATE reservation checked_out WHERE status = checked_in (must change 1 row)
+  CO->>DB: INSERT invoice_sequences(year) ON CONFLICT DO UPDATE last+1 RETURNING last
+  CO->>DB: INSERT invoice (SB-INV-year-number, full JSON snapshot)
+  CO->>DB: UPDATE reservation checked_out, check_out and room total cut to the nights charged,<br/>WHERE status = checked_in (must change 1 row)
   CO->>DB: UPDATE room dirty, dirty_since = now
   CO->>DB: COMMIT
   API-->>G: InvoiceDto, then client shows thanks page, PDF link, feedback
 ```
+
+**Check-out preview.** `GET /stays/:id/checkout-preview` runs the same `runCheckout()` inside an outer transaction and throws a private rollback error with the result, so every write (folio entries, voided requests, the invoice counter) is undone. The check-out page shows that amount, the released nights and the released bookings, and the button reads "Pay AED X and check out" with the same X that check-out charges.
 
 ## 2.5 Availability and pricing
 
@@ -277,8 +285,11 @@ sequenceDiagram
 for rule in hotel.taxes:
   per_room_night: amount = rule.amount × chargedRoomNights      (nights net of releases)
   percent:        basis  = Σ lines in rule.appliesTo categories + Σ earlier taxes in rule.compoundOn
-                  amount = round_half_away_from_zero(basis × rate / 100)
+                  amount = round_half_away_from_zero(basis × rate / 100)   -- in integers:
+                           basis × (rate × 100) / 10 000, so 4.35% of 30.00 is 1.31, not 1.30
 ```
+
+Rates in `hotel.json` have at most two decimal places; start-up rejects anything finer.
 
 Demo configuration (Dubai-style): service charge 10% on everything, municipality fee 7% on room and food, Tourism Dirham AED 15 per room night, VAT 5% on everything **plus** service charge and municipality fee. Each tax is rounded once on its total, not per line.
 
@@ -288,14 +299,16 @@ Demo configuration (Dubai-style): service charge 10% on everything, municipality
 
 | Aspect | Design |
 | --- | --- |
-| Routing | Regex patterns with `:params`; 404 for unknown paths, 405 for wrong method |
-| Body | JSON only (`415` otherwise), max 64 KB (`413`), invalid JSON `400` |
-| Validation | Zod schema per endpoint; first issue becomes the message, all issues in `details.fields` |
+| Routing | Regex patterns with `:params`; 404 for unknown paths, 405 for wrong method; `HEAD` answered like `GET`; a trailing slash on an API path is ignored; malformed percent-encoding gives `400` |
+| Body | `Content-Type` must be `application/json` (a `charset` parameter is fine; `415` otherwise), max 64 KB (`413`), invalid JSON `400`; empty or blank strings count as fields that were not sent |
+| Validation | Zod schema per endpoint; numbers in a body must be JSON numbers (query strings are converted); clock times are strict `HH:mm` (00:00–23:59); a card expiry must be this month or later; first issue becomes the message, all issues in `details.fields` |
 | Errors | `HttpError(status, code, message)` thrown by modules; unknown errors logged with stack, `500 internal_error` returned without internals |
 | Error shape | `{ "error": { "code": "sold_out", "message": "...", "details"?: ... } }` |
-| Rate limits | per IP, fixed 60 s window: general budget `max(10 × RATE_LIMIT_PER_MINUTE, 120)` API calls; **failed lookups** (404 on booking/stay/check-in paths) limited to `RATE_LIMIT_PER_MINUTE`, after which lookups get `429` with `Retry-After` |
-| Headers | CSP (`self` only), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` |
-| Static files | Hashed bundles cached 1 year (`immutable`); `index.html` `no-cache` with brand colours injected server-side; SPA fallback for extension-less paths |
+| Rate limits | fixed 60 s windows, in memory, bounded to 50 000 keys. **General budget:** `max(10 × RATE_LIMIT_PER_MINUTE, 300)` calls per Stay ID on `/api/stays/:id/...` and per client address elsewhere. **Failed lookups:** only a booking or Stay ID that does not exist counts; after `RATE_LIMIT_PER_MINUTE` of them an address gets `429` with `Retry-After` on lookup paths, except for codes that resolved in the last 24 h. The client address is the `X-Forwarded-For` entry `TRUST_PROXY_HOPS` from the right (1 on Render), so a spoofed left-most entry has no effect |
+| Headers | CSP (`self` only), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy`; `Strict-Transport-Security` in production |
+| Static files | Hashed bundles cached 1 year (`immutable`); `index.html` `no-cache` with brand colours injected server-side; SPA fallback for extension-less paths; no source maps are built or served |
+| Logs | Booking references and Stay IDs in request paths are logged as `:code` |
+| Crash safety | The whole request callback is wrapped; any unexpected error becomes a `500` and the process keeps serving |
 
 ## 2.8 Time handling
 
@@ -322,10 +335,11 @@ I dropped look-alike characters (0/O, 1/I/L) from the alphabet `ABCDEFGHJKMNPQRS
 
 | Concern | Design |
 | --- | --- |
-| Routing | ~60-line history router (`useSyncExternalStore` on `popstate`); `/stay/*` renders the mobile app shell, everything else the website layout |
-| Data fetching | `useApi(path, pollMs?)` hook: loading/error state, optional polling that pauses when the tab is hidden |
-| Polling intervals | stay summary 15 s, requests 4 s, bill 10 s |
+| Routing | ~60-line history router (`useSyncExternalStore` on `popstate`); `/stay/:id/*` renders the mobile app shell, `/stay` or `/stay/` without an ID the Stay ID form, everything else the website layout; after each navigation focus moves to the new page's heading |
+| Data fetching | `useApi(path, pollMs?)` hook: loading/error state, optional polling that pauses when the tab is hidden and skips a tick while a request is still running; data from a previous path is never shown for a new one, and only the newest response is kept, so a slow poll cannot undo a cancel |
+| Polling intervals | stay summary 15 s, requests 4 s (also on the confirmation card after placing an order), bill 10 s, check-out preview 15 s |
+| Errors | A top-level error boundary shows a way back instead of a blank page; in the in-stay app a lost connection keeps the last data on screen under a notice |
 | State | Local component state; hotel data in a React context; Stay ID remembered in `localStorage`; the last booking in `sessionStorage` for the confirmation page |
 | Theming | CSS variables `--brand`, `--accent`, `--surface`, `--ink`, `--brand-ink` injected into `index.html` by the server from `hotel.json` |
 | Illustrations | SVG drawn in code from the brand variables (arch motif), so a new brand needs no new images |
-| Accessibility | Labelled fields, visible focus ring, `aria-pressed` on toggles, `aria-live` on request status, reduced-motion respected |
+| Accessibility | Labelled fields, visible focus ring, `aria-pressed` on toggles, one polite live region that announces request status changes, `aria-current="step"` on the current progress step, focus moved to the heading on navigation, reduced-motion respected |

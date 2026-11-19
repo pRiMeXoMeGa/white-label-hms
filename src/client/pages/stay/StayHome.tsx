@@ -1,6 +1,6 @@
 import type { ServiceRequestDto } from '../../../shared/types';
 import { Icon, type IconName } from '../../components/Icons';
-import { Spinner, gap } from '../../components/ui';
+import { ErrorNotice, Spinner, gap } from '../../components/ui';
 import { useApi } from '../../lib/api';
 import { isUpcoming, money, shortDate } from '../../lib/format';
 import { useHotel } from '../../lib/hotel';
@@ -84,9 +84,19 @@ export function StayHome() {
           )}
         </div>
         {requests.loading && <Spinner />}
+        {requests.error && !requests.data && (
+          <div className="stack" style={gap('0.5rem')}>
+            <ErrorNotice error={requests.error} />
+            <button type="button" className="btn btn-ghost" onClick={requests.reload}>
+              Try again
+            </button>
+          </div>
+        )}
         {requests.data && active.length === 0 && (
           <p className="muted small" style={{ margin: 0 }}>
-            Nothing in progress. Your orders and requests will show here with live status.
+            {upcoming.length > 0
+              ? 'Nothing in progress right now. Your upcoming bookings are listed below.'
+              : 'Nothing in progress. Your orders and requests will show here with live status.'}
           </p>
         )}
         {active.map((r) => (

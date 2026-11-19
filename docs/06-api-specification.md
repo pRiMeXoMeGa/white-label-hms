@@ -3,7 +3,8 @@
 **Base URL:** `https://white-label-hms.onrender.com/api` (or `http://localhost:3000/api`)
 This is the API I built for the web client.
 
-**Format:** JSON request and response bodies (`Content-Type: application/json`), UTF-8. Money is in **minor units** (fils): `65000` = AED 650.00.
+**Format:** JSON request and response bodies (`Content-Type: application/json`, optionally with `; charset=utf-8`), UTF-8. Money is in **minor units** (fils): `65000` = AED 650.00.
+**Body values:** numbers must be JSON numbers (`2`, not `"2"`); clock times are 24-hour `HH:mm`; an empty or blank string counts as a field that was not sent. Query-string numbers are converted.
 **Types:** every response type is defined in [`src/shared/types.ts`](../src/shared/types.ts); request validation is the Zod schema next to each module function.
 
 ## 6.1 Conventions
@@ -17,7 +18,7 @@ There are no accounts. Two credentials exist:
 | Booking reference + last name | Look up, cancel, check in | `:code` in the path + `lastName` in query or body |
 | Stay ID | Everything under `/stays/:stayId` | Path segment |
 
-Failed lookups (404 on `/reservations/:code`, `/check-in`, `/stays/...`) are counted per client IP; above `RATE_LIMIT_PER_MINUTE` (default 30) per minute, these endpoints answer `429` until the window resets. [Security](08-security-privacy.md) explains the model.
+Lookups of a booking reference or Stay ID that does not exist (`404` on `/reservations/:code`, `/check-in`, `/stays/...`) are counted per client address. After `RATE_LIMIT_PER_MINUTE` (default 30) of them in a minute, these endpoints answer `429` for that address until the window resets, except for codes that resolved successfully in the last 24 hours. Separately, every Stay ID (for `/stays/...`) and every client address (for everything else) has a general budget of 10 × `RATE_LIMIT_PER_MINUTE` calls a minute, at least 300. [Security](08-security-privacy.md) explains the model.
 
 ### Errors
 
@@ -27,13 +28,13 @@ Failed lookups (404 on `/reservations/:code`, `/check-in`, `/stays/...`) are cou
 
 | HTTP | `code` | When |
 | --- | --- | --- |
-| 400 | `bad_request` | Validation failed; `details.fields` lists `{ path, message }` for each problem |
+| 400 | `bad_request` | Validation failed (`details.fields` lists `{ path, message }` for each problem), or the address has malformed percent-encoding |
 | 400 | `invalid_json` | Body is not valid JSON |
 | 404 | `not_found` | Unknown booking, stay, request, room type or endpoint |
 | 405 | `method_not_allowed` | Known path, wrong method |
-| 409 | `sold_out`, `slot_taken`, `not_cancellable`, `not_checkinable`, `stay_closed`, `feedback_exists`, `not_checked_out` | Request conflicts with current state |
+| 409 | `sold_out`, `slot_taken`, `not_cancellable`, `not_checkinable`, `stay_closed`, `stay_ended`, `feedback_exists`, `not_checked_out` | Request conflicts with current state |
 | 413 | `payload_too_large` | Body over 64 KB |
-| 415 | `unsupported_media_type` | Body sent without `application/json` |
+| 415 | `unsupported_media_type` | Body sent with a content type other than `application/json` |
 | 422 | `party_too_large`, `too_early`, `too_late` | Valid input that breaks a business rule |
 | 429 | `rate_limited` | Too many requests or failed lookups; `Retry-After` header in seconds |
 | 500 | `internal_error` | Unexpected; details are logged, not returned |
@@ -61,12 +62,17 @@ Failed lookups (404 on `/reservations/:code`, `/check-in`, `/stays/...`) are cou
 | POST | `/stays/:stayId/transfers` | Book an airport transfer | 201 `ServiceRequestDto` |
 | POST | `/stays/:stayId/requests/:id/cancel` | Cancel a request | 200 `ServiceRequestDto` |
 | GET | `/stays/:stayId/bill` | Live (or frozen) bill | 200 `BillDto` |
+| GET | `/stays/:stayId/checkout-preview` | What check-out would charge and release now, with no changes | 200 `CheckoutPreviewDto` |
 | POST | `/stays/:stayId/checkout` | Pay and check out | 200 `InvoiceDto` |
 | GET | `/stays/:stayId/invoice` | Invoice after check-out | 200 `InvoiceDto` |
 | GET | `/stays/:stayId/invoice.pdf` | Invoice as PDF (download) | 200 `application/pdf` |
 | POST | `/stays/:stayId/feedback` | Rating after check-out | 201 `{ "ok": true }` |
 
-Endpoints under `/stays/:stayId` that **change** something (orders, bookings, cancel, check-out) or reveal in-stay information (`info`, `catalog`, `options`, `spa/slots`) need a stay that is currently checked in; otherwise `409 stay_closed`. Read-only `GET /stays/:stayId`, `/requests`, `/bill` and `/invoice` keep working after check-out.
+Endpoints under `/stays/:stayId` that **change** something (orders, bookings, cancel, check-out, preview) or reveal in-stay information (`info`, `catalog`, `options`, `spa/slots`) need a stay that is currently checked in; otherwise `409 stay_closed`. Read-only `GET /stays/:stayId`, `/requests`, `/bill` and `/invoice` keep working after check-out.
+
+Once the hotel-local time passes check-out time (12:00) on the check-out date, orders, maintenance reports, spa bookings and transfer bookings answer `409 stay_ended`; `StayDto.overdue` is `true`, and cancelling, the bill, the preview and check-out keep working.
+
+`HEAD` is answered like `GET`, and a trailing slash on an API path is ignored.
 
 ## 6.3 Public endpoints
 
@@ -110,7 +116,7 @@ Endpoints under `/stays/:stayId` that **change** something (orders, bookings, ca
 | phone | 6–30 characters |
 | specialRequests | optional, ≤ 500 |
 | card.number | 12–19 digits, Luhn-valid; only brand + last 4 are stored |
-| card.expiry | `MM/YY` |
+| card.expiry | `MM/YY`, this month or later |
 
 `201` response (`ReservationDto`):
 
@@ -119,7 +125,7 @@ Endpoints under `/stays/:stayId` that **change** something (orders, bookings, ca
   "code": "SB-QRGBUU", "status": "confirmed",
   "roomType": { "name": "Deluxe King", "slug": "deluxe-king" }, "roomNumber": null,
   "checkIn": "2026-11-19", "checkOut": "2026-11-21", "nights": 2, "adults": 2, "children": 0,
-  "guest": { "firstName": "Test", "lastName": "Guest", "email": "test.guest@example.com", "phone": "+971500000000" },
+  "guest": { "firstName": "Aisha", "lastName": "Khan", "email": "aisha@example.com", "phone": "+971501234567" },
   "roomTotalMinor": 156000, "cardLast4": "4242", "canCheckInFrom": "2026-11-19", "stayCode": null,
   "createdAt": "2026-11-19T02:39:58.120Z"
 }
@@ -129,26 +135,27 @@ Errors: `400` (validation), `404` (unknown room type), `409 sold_out`, `422 part
 
 ### `GET /reservations/:code?lastName=Khan` and `POST /reservations/:code/cancel`
 
-Cancel body: `{ "lastName": "Khan" }`. Returns the updated `ReservationDto` (`status: "cancelled"`). `roomNumber` and `stayCode` are only filled once checked in. Errors: `404`, `409 not_cancellable` (already checked in, out or cancelled).
+Cancel body: `{ "lastName": "Khan" }`. Returns the updated `ReservationDto` (`status: "cancelled"`). `roomNumber` and `stayCode` are filled once checked in and stay filled after check-out; after an early check-out `checkOut`, `nights` and `roomTotalMinor` show the nights actually charged. Errors: `404`, `409 not_cancellable` (already checked in, out or cancelled).
 
 ### `POST /check-in`
 
 ```json
 {
-  "code": "SB-QRGBUU", "lastName": "guest",
+  "code": "SB-QRGBUU", "lastName": "Khan",
   "nationality": "India", "idType": "passport", "idNumber": "Z1234567",
   "arrivalTime": "15:00", "acceptTerms": true
 }
 ```
 
-`idType` is `passport`, `emirates_id` or `national_id`. Response `StayDto`:
+`idType` is `passport`, `emirates_id` or `national_id`; `arrivalTime` is optional, `00:00`–`23:59`. Response `StayDto`:
 
 ```json
 {
   "stayCode": "TP7A-TZ4P-64TQ", "status": "checked_in", "reservationCode": "SB-QRGBUU",
-  "guestName": "Test Guest", "roomNumber": "101", "roomType": "Deluxe King", "floor": 1,
+  "guestName": "Aisha Khan", "roomNumber": "101", "roomType": "Deluxe King", "floor": 1,
   "checkIn": "2026-11-19", "checkOut": "2026-11-21", "nights": 2,
-  "balanceMinor": 194646, "invoiceNumber": null, "feedbackGiven": false, "cardOnFile": "Visa ending 4242"
+  "balanceMinor": 194646, "invoiceNumber": null, "feedbackGiven": false, "cardOnFile": "Visa ending 4242",
+  "overdue": false
 }
 ```
 
@@ -166,9 +173,9 @@ Errors: `404`, `409 not_checkinable` (cancelled or checked out), `422 too_early`
 
 | Field | Rules |
 | --- | --- |
-| items | 1–30 lines; `quantity` 1–20; items must belong to that service and be active; duplicate lines are merged |
+| items | 1–30 lines; `quantity` 1–20; items must belong to that service and be active; duplicate lines are merged, and the merged quantity per item is at most 20 |
 | notes | optional, ≤ 300 |
-| express, pickupTime | laundry only; express adds the configured surcharge (50%) |
+| express, pickupTime | laundry only; express adds the configured surcharge (50%); `pickupTime` is `HH:mm` |
 
 `201` response (`ServiceRequestDto`):
 
@@ -182,9 +189,12 @@ Errors: `404`, `409 not_checkinable` (cancelled or checked out), `422 too_early`
     { "status": "on_the_way", "label": "On the way to your room", "at": null },
     { "status": "delivered", "label": "Delivered", "at": null }
   ],
-  "items": [ { "name": "Shakshuka", "quantity": 2, "unitMinor": 4800, "amountMinor": 9600 } ],
-  "totalMinor": 11400, "notes": null, "details": { "express": false, "pickupTime": null },
-  "scheduledAt": null, "nextUpdateAt": "2026-11-19T02:42:12.004Z", "createdAt": "2026-11-19T02:41:12.004Z"
+  "items": [
+    { "name": "Shakshuka", "quantity": 2, "unitMinor": 4800, "amountMinor": 9600 },
+    { "name": "Karak chai", "quantity": 1, "unitMinor": 1800, "amountMinor": 1800 }
+  ],
+  "totalMinor": 11400, "notes": "No chilli", "details": { "express": false, "pickupTime": null },
+  "scheduledAt": null, "nextUpdateAt": "2026-11-19T02:41:22.004Z", "createdAt": "2026-11-19T02:41:12.004Z"
 }
 ```
 
@@ -201,9 +211,9 @@ Errors: `404`, `409 not_checkinable` (cancelled or checked out), `422 too_early`
   { "start": "2026-11-20T10:30", "end": "2026-11-20T11:30", "available": false } ]
 ```
 
-`date` must be within the stay and not in the past. Times are hotel-local.
+`date` must be within the stay and not in the past. Times are hotel-local. On the check-out date only treatments that end by check-out time are listed.
 
-`POST /stays/:stayId/spa`: `{ "treatmentId": 1, "start": "2026-11-20T10:00", "notes": "Light pressure" }`. Errors: `400` (outside opening hours or stay), `409 slot_taken`.
+`POST /stays/:stayId/spa`: `{ "treatmentId": 1, "start": "2026-11-20T10:00", "notes": "Light pressure" }`. Errors: `400` (outside opening hours or the stay, or ending after check-out time on the check-out date), `409 slot_taken`, `409 stay_ended`.
 
 ### `POST /stays/:stayId/transfers`
 
@@ -215,7 +225,7 @@ Errors: `404`, `409 not_checkinable` (cancelled or checked out), `422 too_early`
 | --- | --- |
 | direction | `to_airport` or `from_airport` |
 | airport, vehicle | codes from `GET /options` (`DXB`, `DWC`; `sedan`, `suv`, `luxury`) |
-| pickupAt | hotel-local `YYYY-MM-DDTHH:mm`, ≥ now + 2 h, not after the check-out day |
+| pickupAt | hotel-local `YYYY-MM-DDTHH:mm`, ≥ now + 2 h; `to_airport` up to the end of the check-out day, `from_airport` before the check-out day |
 | flightNumber | like `EK 203` |
 | passengers | 1–12 and ≤ the car's seats |
 
@@ -229,7 +239,11 @@ No body. Allowed while the request is in its first status; spa until 60 min and 
 {
   "currency": "AED",
   "lines": [ { "date": "2026-11-19", "category": "room", "description": "Room night, Deluxe King", "quantity": 1, "unitMinor": 78000, "amountMinor": 78000 } ],
-  "byCategory": [ { "category": "room", "amountMinor": 156000 }, { "category": "food", "amountMinor": 11400 } ],
+  "byCategory": [
+    { "category": "room", "amountMinor": 156000 }, { "category": "food", "amountMinor": 11400 },
+    { "category": "spa", "amountMinor": 45000 }, { "category": "transfer", "amountMinor": 18000 },
+    { "category": "laundry", "amountMinor": 6000 }
+  ],
   "subtotalMinor": 236400,
   "taxes": [
     { "kind": "percent", "code": "SC", "name": "Service charge", "ratePercent": 10, "basisMinor": 236400, "amountMinor": 23640 },
@@ -242,11 +256,25 @@ No body. Allowed while the request is in its first status; spa until 60 min and 
 }
 ```
 
+### `GET /stays/:stayId/checkout-preview`
+
+Runs the check-out inside a transaction and rolls it back, so nothing changes. Response `CheckoutPreviewDto`:
+
+```json
+{
+  "bill": { "...": "the BillDto check-out would freeze, isFinal false" },
+  "checkOut": "2026-11-20", "dueMinor": 159019, "nightsReleased": 1,
+  "servicesReleased": [ "Spa, Swedish massage", "Airport transfer, Hotel to DXB" ]
+}
+```
+
+`checkOut` is the departure date the invoice would show; `dueMinor` is the amount `POST /checkout` charges if nothing changes in between.
+
 ### `POST /stays/:stayId/checkout`
 
 `{ "method": "card_on_file" }` or `{ "method": "new_card", "holder": "…", "number": "…", "expiry": "MM/YY" }`.
 
-Response `InvoiceDto`: `number`, `issuedAt`, `reservationCode`, `guestName`, `roomNumber`, `checkIn`, `checkOut` (actual billed departure), `bill` (final `BillDto`, `isFinal: true`, `balanceMinor: 0`), `payment` (`method` e.g. "Visa ending 4242", `reference`). Errors: `409 stay_closed` if already checked out.
+The new card's expiry must be this month or later. Response `InvoiceDto`: `number` (`SB-INV-YYYY-NNNNN`, restarting at 00001 each year), `issuedAt`, `reservationCode`, `guestName`, `roomNumber`, `checkIn`, `checkOut` (actual billed departure), `bill` (final `BillDto`, `isFinal: true`, `balanceMinor: 0`), `payment` (`method` e.g. "Visa ending 4242", `reference`). Errors: `409 stay_closed` if already checked out.
 
 ### `GET /stays/:stayId/invoice.pdf`
 

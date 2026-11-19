@@ -52,6 +52,9 @@ const TABS = [
   { to: '/info', label: 'Hotel info', icon: Icon.info },
 ] as const;
 
+// Pages reached from the Services tab keep that tab highlighted.
+const SERVICE_SECTIONS = new Set(['services', 'dining', 'laundry', 'amenities', 'housekeeping', 'maintenance', 'spa', 'transfer']);
+
 function Shell({ children, showTabs }: { children: ReactNode; showTabs: boolean }) {
   const hotel = useHotel();
   const { pathname } = useLocation();
@@ -72,7 +75,13 @@ function Shell({ children, showTabs }: { children: ReactNode; showTabs: boolean 
           <nav aria-label="Stay">
             {TABS.map((t) => {
               const href = `${base}${t.to}`;
-              const active = t.to === '' ? pathname === base : pathname.startsWith(href);
+              const section = pathname.slice(base.length + 1).split('/')[0] ?? '';
+              const active =
+                t.to === ''
+                  ? pathname === base || pathname === `${base}/` || section === 'requests'
+                  : t.to === '/services'
+                    ? SERVICE_SECTIONS.has(section)
+                    : pathname.startsWith(href);
               return (
                 <Link key={t.label} href={href} aria-current={active ? 'page' : undefined}>
                   <t.icon />
@@ -106,16 +115,22 @@ export function StayApp() {
     if (closed && section !== 'thanks' && section !== 'bill') navigate(`${base}/thanks`, { replace: true });
   }, [closed, section, base]);
 
-  if (stay.error) {
-    if (stay.error.status === 404 && rememberedStay() === code) forgetStay();
-    const gone = stay.error.status === 404;
+  const gone = stay.error?.status === 404;
+  // A lost connection keeps the last good details on screen; only a missing stay, or no data
+  // at all, replaces the page.
+  if (stay.error && (gone || !stay.data)) {
+    if (gone && rememberedStay() === code) forgetStay();
     return (
       <div className="app" style={{ paddingTop: '2rem' }}>
         {gone ? (
           <Notice tone="error">
-            We could not find stay {code}. This is a demo: its data is cleared whenever the server is updated or
-            restarted, so stays from before that are no longer available. You can <Link href="/">book a new stay</Link> and
-            check in again, or enter a different Stay ID below.
+            <p style={{ margin: 0 }}>
+              We could not find a stay with the ID {code}. Check the ID for a typing mistake. Your Stay ID is also shown
+              under <Link href="/manage">Manage booking</Link> with your booking reference and last name.
+            </p>
+            <p className="small" style={{ margin: '0.5rem 0 0' }}>
+              Demo data is cleared when the server is updated, so stays made before an update are no longer available.
+            </p>
           </Notice>
         ) : (
           <ErrorNotice error={stay.error} />
@@ -179,7 +194,22 @@ export function StayApp() {
 
   return (
     <Ctx.Provider value={value}>
-      <Shell showTabs={!closed && section !== 'checkout'}>{page}</Shell>
+      <Shell showTabs={!closed && section !== 'checkout'}>
+        {stay.error && (
+          <div style={{ marginBottom: '1rem' }}>
+            <Notice>Connection lost. Showing the last details we had; this page updates again once you are back online.</Notice>
+          </div>
+        )}
+        {stay.data.overdue && section !== 'checkout' && section !== 'thanks' && section !== 'bill' && (
+          <div style={{ marginBottom: '1rem' }}>
+            <Notice>
+              Check-out time ({hotel.checkOutTime} on the day you leave) has passed, so new orders and bookings are closed. You
+              can still <Link href={`${base}/checkout`}>check out</Link> here, or call reception to extend your stay.
+            </Notice>
+          </div>
+        )}
+        {page}
+      </Shell>
     </Ctx.Provider>
   );
 }

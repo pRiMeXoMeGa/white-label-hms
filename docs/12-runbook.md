@@ -16,8 +16,8 @@ How I run, operate and troubleshoot the app.
 | Start | `npm run build && npm start` | Automatic on every push to `main` |
 | Develop with reload | `npm run dev` | — |
 | Run tests | `npm test` | Run during every Docker build |
-| Reset demo data | `npm run seed:reset` | A service restart (free plan), or one deploy with `RESET_DB_ON_START=true` |
-| Change status timers | `.env` (template in `.env.example`), then a restart | `AUTO_ADVANCE_SECONDS*` under Environment, then Save |
+| Reset demo data | `npm run seed:reset` | **Restart service** in Render (the free plan has no disk), or one deploy with `RESET_DB_ON_START=true` |
+| Change status timers | `.env` (template in `.env.example`), then a restart of `npm start` (`npm run dev` reloads by itself) | `AUTO_ADVANCE_SECONDS*` under Environment, then Save |
 | Change prices, menu, brand | `config/hotel.json`, then `npm run seed:reset` | A commit and push; the redeploy re-seeds |
 | Read logs | Terminal output (JSON lines) | The service's Logs tab |
 | Roll back | `git revert <commit>` | Rollback to the previous deploy in Render's deploy history |
@@ -33,13 +33,16 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 | Site takes ~1 min to open | First visit after a deploy, or the keep-awake ping stopped | It wakes by itself within about a minute; `keep-alive ping failed` lines in the log show ping problems |
 | Bookings disappeared | A deploy or restart cleared the database (no disk on the free plan) | Expected after a deploy; a paid plan with a disk keeps data |
 | "Online check-in opens on …" | Booking starts on a later date | Check-in opens on the arrival day, or earlier with `EARLY_CHECKIN_DAYS` |
-| "We could not find stay …" | Typo, or the data was cleared by a deploy | Manage booking recovers the Stay ID; after a reset the booking no longer exists |
-| "Too many attempts. Try again in N seconds." | 30 failed lookups in a minute from one IP | Lookups work again after the time shown |
+| "We could not find a stay with the ID …" | Typo, or the data was cleared by a deploy | Manage booking recovers the Stay ID; after a reset the booking no longer exists |
+| "Connection lost. Showing the last details we had…" | The phone lost its connection while the app was open | The page updates again by itself once the connection is back |
+| "Your stay ended at 12:00 on …" when ordering | Check-out time on the last day has passed | New requests are closed by design; check-out still works, and reception extends stays |
+| "Too many attempts. Try again in N seconds." | 30 lookups of booking references or Stay IDs that do not exist, in a minute, from one address; or more than 300 calls a minute for one Stay ID | Lookups work again after the time shown; Stay IDs that opened successfully in the last 24 hours keep working |
 | Statuses slower than 10 s, or not moving | Render still holds older timer values, or `AUTO_ADVANCE_ENABLED=false` | `/api/health` and the `scheduler started` log line show the active values; the Environment page in Render holds the source values |
-| Spa shows no free times | Less than 60 minutes' notice, or all 3 rooms taken | Later times or another day are available |
-| Transfer refused | Less than 2 hours' notice, after the check-out day, or too many passengers for the car | The error message names the rule |
+| Spa shows no free times | Less than 60 minutes' notice, all 3 rooms taken, or the check-out day after the last treatment that ends by 12:00 | Later times or another day are available |
+| Transfer refused | Less than 2 hours' notice, after the check-out day, an airport pick-up on the check-out day, or too many passengers for the car | The error message names the rule |
 | Build fails on Render | A failing test or a dependency install error | The build log shows the failing step; `npm test` reproduces test failures locally |
-| Service unhealthy | App stopped at start, usually invalid env or `hotel.json` | Logs show the exact field, e.g. `Invalid hotel config at ./config/hotel.json: brand.colors.primary: expected a #rrggbb colour` |
+| Service unhealthy | App stopped at start, usually invalid env or `hotel.json` | Logs show the exact field on its own line, e.g. `Invalid hotel config at ./config/hotel.json:` then `brand.colors.primary: expected a #rrggbb colour` |
+| `400` "The address contains invalid characters" | A link with broken percent-encoding | The request is refused and the service keeps running |
 
 ## 12.4 Log lines
 
@@ -49,12 +52,13 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 {"msg":"keep-alive started","target":"https://white-label-hms.onrender.com/api/health","everyMinutes":10}
 {"msg":"listening","url":"http://localhost:3000","env":"production"}
 {"msg":"request","method":"POST","path":"/api/reservations","status":201,"ms":4}
+{"msg":"request","method":"GET","path":"/api/stays/:code/requests","status":200,"ms":1}
 {"msg":"scheduler tick","advanced":3,"cleaned":0}
 {"msg":"unhandled error","path":"/api/...","error":"<stack>"}
 ```
 
 ## 12.5 Test data
 
-- Card: `4242 4242 4242 4242`, any future expiry (e.g. `12/29`), any 3-digit code. No money moves.
+- Card: `4242 4242 4242 4242`, any expiry from the current month on (e.g. `12/29`), any 3-digit code. No money moves.
 - ID: any document number of 5+ characters; only the last 4 are stored.
 - Flight number format: `EK 203`.

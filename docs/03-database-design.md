@@ -83,7 +83,7 @@ erDiagram
   }
 ```
 
-`spa_treatments` stands alone: a spa request copies the treatment name, duration and price into the request (`details`, items, charges) so later price changes never alter a booked treatment.
+`spa_treatments` and `invoice_sequences` stand alone. `spa_treatments`: a spa request copies the treatment name, duration and price into the request (`details`, items, charges) so later price changes never alter a booked treatment.
 
 ## 3.2 Data dictionary
 
@@ -127,17 +127,17 @@ Money columns are integers in **minor units** (fils: AED 1.00 = 100). Dates are 
 | stay_code | TEXT | UNIQUE, NULL until check-in | Stay ID `XXXX-XXXX-XXXX` |
 | room_type_id | INTEGER | FK → room_types | |
 | room_id | INTEGER | FK → rooms | Assigned at booking |
-| check_in, check_out | TEXT | `check_out > check_in` (CHECK) | Planned stay |
+| check_in, check_out | TEXT | `check_out > check_in` (CHECK) | Booked stay; an early check-out moves `check_out` to the last charged date |
 | adults | INTEGER | ≥ 1 | |
 | children | INTEGER | ≥ 0 | |
 | first_name, last_name, email, phone | TEXT | NOT NULL | Guest contact; last name is part of the lookup credential |
 | special_requests | TEXT | nullable | |
 | status | TEXT | `confirmed`, `checked_in`, `checked_out`, `cancelled` | See [state machine](02-low-level-design.md#reservation-lifecycle) |
-| room_total_minor | INTEGER | NOT NULL | Room price at booking time |
+| room_total_minor | INTEGER | NOT NULL | Room price at booking time, lowered by the released nights on an early check-out |
 | card_brand, card_last4 | TEXT | nullable | **Only** brand and last 4 digits are stored |
 | nationality, id_type | TEXT | nullable | From check-in |
 | id_last4 | TEXT | nullable | **Only** last 4 characters of the ID document |
-| arrival_time | TEXT | `HH:mm`, nullable | |
+| arrival_time | TEXT | `HH:mm` (00:00–23:59, checked by the API), nullable | |
 | created_at, checked_in_at, checked_out_at, cancelled_at | TEXT | UTC | Lifecycle timestamps |
 
 Index: `reservations_last_name` on `lower(last_name)`.
@@ -183,6 +183,15 @@ Triggers `folio_entries_no_update` and `folio_entries_no_delete` abort any `UPDA
 | total_minor | INTEGER | NOT NULL | |
 | payload | TEXT | JSON | Full `InvoiceDto`: lines, taxes, totals, payment |
 
+**`invoice_sequences`** (migration 2): one counter row per invoice year
+
+| Column | Type | Rules | Meaning |
+| --- | --- | --- | --- |
+| year | TEXT | PK | `2026` (hotel-local date of check-out) |
+| last | INTEGER | ≥ 0 | Last number issued that year |
+
+Check-out takes the next number with `INSERT ... ON CONFLICT (year) DO UPDATE SET last = last + 1 RETURNING last` inside its own transaction, so numbers restart at `00001` each year and never depend on counting rows. The migration fills the table from any invoices that already exist.
+
 ### Services
 
 **`catalog_items`**: dining menu, laundry price list, amenities, housekeeping options
@@ -219,9 +228,9 @@ Triggers `folio_entries_no_update` and `folio_entries_no_delete` abort any `UPDA
 
 Indexes: `service_requests_reservation (reservation_id)`; partial `service_requests_due (next_transition_at) WHERE next_transition_at IS NOT NULL`.
 
-**`service_request_items`**: `id`, `request_id` FK, `catalog_item_id` FK nullable, `name`, `quantity` (> 0), `unit_minor`, `amount_minor`. Name and price are **copied** at order time.
+**`service_request_items`**: `id`, `request_id` FK, `catalog_item_id` FK nullable, `name`, `quantity` (> 0), `unit_minor`, `amount_minor`. Name and price are **copied** at order time. Index `service_request_items_request (request_id)`.
 
-**`service_request_events`**: `id`, `request_id` FK, `status`, `created_at`. One row per status change: the timeline shown to the guest and the audit trail.
+**`service_request_events`**: `id`, `request_id` FK, `status`, `created_at`. One row per status change: the timeline shown to the guest and the audit trail. Index `service_request_events_request (request_id)`.
 
 **`spa_slot_locks`**
 
@@ -231,7 +240,7 @@ Indexes: `service_requests_reservation (reservation_id)`; partial `service_reque
 | slot_start | TEXT | **PK part** | 30-min unit, hotel-local `YYYY-MM-DDTHH:mm` |
 | request_id | INTEGER | FK → service_requests | |
 
-A 90-minute treatment holds three rows in one treatment room. Rows are deleted when the booking is cancelled or completed.
+A 90-minute treatment holds three rows in one treatment room. Rows are deleted when the booking is cancelled or completed. Index `spa_slot_locks_request (request_id)`.
 
 **`feedback`**: `reservation_id` (PK, FK), `rating` (1–5, CHECK), `comment`, `created_at`. One per stay.
 
@@ -244,7 +253,7 @@ A 90-minute treatment holds three rows in one treatment room. Rows are deleted w
 | A room is never sold twice for the same night | `room_nights` PRIMARY KEY `(room_id, night)` |
 | A spa treatment room is never double-booked | `spa_slot_locks` PRIMARY KEY `(resource, slot_start)` |
 | Bills cannot be rewritten | Triggers abort `UPDATE`/`DELETE` on `folio_entries` |
-| One invoice per stay; invoice numbers unique | UNIQUE `invoices.reservation_id`, UNIQUE `invoices.number` |
+| One invoice per stay; invoice numbers unique and gap-free per year | UNIQUE `invoices.reservation_id`, UNIQUE `invoices.number`, counter row in `invoice_sequences` updated in the check-out transaction |
 | Booking references and Stay IDs unique | UNIQUE `reservations.code`, UNIQUE `reservations.stay_code` |
 | Valid stays, sensible values | CHECK `check_out > check_in`, `adults >= 1`, status enums, `rating BETWEEN 1 AND 5`, non-negative prices |
 | References stay valid | `PRAGMA foreign_keys = ON` |
@@ -259,7 +268,7 @@ I prevent double booking with two layers:
 For multi-instance deployments I plan to move to PostgreSQL, where the equivalent is an exclusion constraint:
 
 ```sql
-ALTER TABLE stays ADD CONSTRAINT no_overlap
+ALTER TABLE reservations ADD CONSTRAINT no_overlap
   EXCLUDE USING gist (room_id WITH =, daterange(check_in, check_out) WITH &&)
   WHERE (status IN ('confirmed', 'checked_in'));
 ```
@@ -273,7 +282,7 @@ ALTER TABLE stays ADD CONSTRAINT no_overlap
 
 ## 3.6 Migrations and seeding
 
-- `migrate()` runs at start-up. Each migration has a version number, runs once inside a transaction, and is recorded in `schema_migrations`. I keep migrations forward-only; every change ships as a new numbered migration.
+- `migrate()` runs at start-up. Each migration has a version number, runs once inside a transaction, and is recorded in `schema_migrations`. I keep migrations forward-only; every change ships as a new numbered migration. Migration 1 is the schema above; migration 2 adds `invoice_sequences`.
 - `seedIfEmpty()` loads room types, rooms, the catalogue and spa treatments from `hotel.json` only when `room_types` is empty, so restarts never duplicate data.
 - `npm run seed:reset` or `RESET_DB_ON_START=true` deletes the file (and its WAL/SHM side files) and re-seeds; I use this for demos.
 
@@ -285,7 +294,9 @@ ALTER TABLE stays ADD CONSTRAINT no_overlap
 | Find booking by reference | UNIQUE index on `code` |
 | Open the in-stay app | UNIQUE index on `stay_code` |
 | Bill for a stay | `folio_entries_reservation` |
-| Requests for a stay | `service_requests_reservation` |
+| Requests for a stay | `service_requests_reservation`, then `service_request_items_request` and `service_request_events_request` per request |
+| Free a booking's spa slots | `spa_slot_locks_request` |
+| Next invoice number | `invoice_sequences` PK `year` |
 | Scheduler: due requests | partial index `service_requests_due` |
 | Spa slot check | `spa_slot_locks` PK `(resource, slot_start)` |
 

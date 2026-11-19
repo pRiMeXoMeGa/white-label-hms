@@ -1,28 +1,22 @@
 import { useState, type FormEvent } from 'react';
-import type { BillDto, InvoiceDto, ServiceRequestDto } from '../../../shared/types';
+import type { CheckoutPreviewDto, InvoiceDto } from '../../../shared/types';
 import { ErrorNotice, Field, Notice, Spinner, gap } from '../../components/ui';
 import { ApiError, post, useApi } from '../../lib/api';
-import { formatCardNumber, formatExpiry, money, shortDate } from '../../lib/format';
-import { useHotel } from '../../lib/hotel';
+import { formatCardNumber, formatExpiry, money, plural, shortDate } from '../../lib/format';
 import { navigate } from '../../lib/router';
 import { BillBreakdown } from './Bill';
 import { BackLink, useStay } from './StayApp';
 
 export function Checkout() {
-  const hotel = useHotel();
   const { code, base, stay, reload } = useStay();
-  const bill = useApi<BillDto>(`/stays/${code}/bill`);
-  const requests = useApi<ServiceRequestDto[]>(`/stays/${code}/requests`);
+  // The server works out exactly what check-out would charge and release, without changing anything.
+  const preview = useApi<CheckoutPreviewDto>(`/stays/${code}/checkout-preview`, 15_000);
   const [method, setMethod] = useState<'card_on_file' | 'new_card'>('card_on_file');
   const [card, setCard] = useState({ holder: '', number: '', expiry: '', cvc: '' });
   const [showLines, setShowLines] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  const early = hotel.today < stay.checkOut && hotel.today >= stay.checkIn;
-  const futureSpa = requests.data?.filter((r) => r.service === 'spa' && !r.isFinal && !r.isCancelled) ?? [];
-  const laterTransfers =
-    requests.data?.filter((r) => r.service === 'transfer' && !r.isFinal && !r.isCancelled && (r.scheduledAt ?? '') > `${hotel.today}T23:59`) ?? [];
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -41,31 +35,36 @@ export function Checkout() {
     }
   };
 
-  if (bill.loading) return <Spinner />;
-  if (!bill.data) return <ErrorNotice error={bill.error} />;
-  const b = bill.data;
+  if (preview.loading) return <Spinner />;
+  if (!preview.data) return <ErrorNotice error={preview.error} />;
+  const p = preview.data;
+  const b = p.bill;
 
   return (
     <form className="stack" style={gap('1.1rem')} onSubmit={submit}>
       <BackLink>Home</BackLink>
       <h1 style={{ fontSize: 'var(--step-2)', margin: 0 }}>Check out</h1>
 
-      {early && (
+      {p.nightsReleased > 0 && (
         <Notice>
-          You are leaving before {shortDate(stay.checkOut)}. Nights after tonight are released and taken off your bill when you
-          check out.
+          You are leaving before {shortDate(stay.checkOut)}. {plural(p.nightsReleased, 'unused night')} from{' '}
+          {shortDate(p.checkOut)} onwards {p.nightsReleased === 1 ? 'is' : 'are'} released and taken off your bill; at least one
+          night is always charged.
         </Notice>
       )}
-      {futureSpa.length > 0 && <Notice>Spa bookings that have not started yet will be cancelled and refunded.</Notice>}
-      {early && laterTransfers.length > 0 && <Notice>Airport transfers booked for a later day will be cancelled and refunded.</Notice>}
+      {p.servicesReleased.length > 0 && (
+        <Notice>
+          These bookings have not started yet and are cancelled and refunded at check-out: {p.servicesReleased.join('; ')}.
+        </Notice>
+      )}
 
       <section className="panel stack" style={gap('0.6rem')}>
         <div className="bill-total">
           <span>Total due</span>
-          <span className="price">{money(b.balanceMinor)}</span>
+          <span className="price">{money(p.dueMinor)}</span>
         </div>
         <p className="small muted" style={{ margin: 0 }}>
-          Including {money(b.taxTotalMinor)} taxes and fees. The final amount reflects any early-departure adjustments.
+          Including {money(b.taxTotalMinor)} taxes and fees, after any released nights and bookings above.
         </p>
         <button type="button" className="btn-link" aria-expanded={showLines} onClick={() => setShowLines((v) => !v)}>
           {showLines ? 'Hide' : 'Show'} itemised bill
@@ -113,7 +112,7 @@ export function Checkout() {
 
       <ErrorNotice error={error} />
       <button className="btn btn-accent btn-block" disabled={busy}>
-        {busy ? 'Checking you out…' : early ? 'Pay and check out' : `Pay ${money(b.balanceMinor)} and check out`}
+        {busy ? 'Checking you out…' : `Pay ${money(p.dueMinor)} and check out`}
       </button>
       <p className="small muted" style={{ margin: 0 }}>
         Leave your key card in the room or at reception. Your invoice will be ready to download straight away.

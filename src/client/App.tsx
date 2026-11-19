@@ -1,5 +1,7 @@
 import type { PublicHotel } from '../shared/types';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SiteLayout } from './components/SiteLayout';
+import { LiveRegion } from './lib/announce';
 import { ErrorNotice, Spinner } from './components/ui';
 import { useApi } from './lib/api';
 import { configureFormat } from './lib/format';
@@ -30,7 +32,8 @@ export function App() {
 
   // The in-stay app has its own mobile shell; everything else uses the website layout.
   let page;
-  if (pathname.startsWith('/stay/')) {
+  const stayPath = matchPath('/stay/:code', pathname) ?? matchPath('/stay/:code/:section', pathname);
+  if (stayPath?.code?.trim()) {
     page = <StayApp />;
   } else {
     let p: Record<string, string> | null;
@@ -40,10 +43,15 @@ export function App() {
     else if ((p = matchPath('/booking/:code', pathname))) page = <Confirmation code={p.code!} />;
     else if (pathname === '/manage') page = <ManageBooking />;
     else if (pathname === '/check-in') page = <CheckIn />;
-    else if (pathname === '/stay') page = <StayEntry />;
+    else if (pathname === '/stay' || pathname.startsWith('/stay/')) page = <StayEntry />;
     else page = <NotFound />;
     page = <SiteLayout>{page}</SiteLayout>;
   }
 
-  return <HotelContext.Provider value={hotel.data}>{page}</HotelContext.Provider>;
+  return (
+    <HotelContext.Provider value={hotel.data}>
+      <ErrorBoundary>{page}</ErrorBoundary>
+      <LiveRegion />
+    </HotelContext.Provider>
+  );
 }

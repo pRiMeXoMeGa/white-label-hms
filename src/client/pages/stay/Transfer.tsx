@@ -5,7 +5,7 @@ import { ApiError, post, useApi } from '../../lib/api';
 import { money, shortDate } from '../../lib/format';
 import { useHotel } from '../../lib/hotel';
 import { StayHomeButton } from './CatalogOrder';
-import { RequestCard } from './RequestCard';
+import { LiveRequestCard } from './RequestCard';
 import { stayDates } from './Spa';
 import { BackLink, useStay } from './StayApp';
 
@@ -63,7 +63,7 @@ export function Transfer() {
       <div className="stack">
         <BackLink>Home</BackLink>
         <h1 style={{ fontSize: 'var(--step-2)' }}>Transfer booked</h1>
-        <RequestCard r={booked} onChange={() => undefined} />
+        <LiveRequestCard r={booked} />
         <p className="small muted">Your driver will wait in the lobby with a name sign. We track your flight for arrivals.</p>
         <StayHomeButton />
       </div>
@@ -155,7 +155,7 @@ export function Transfer() {
             </p>
           )}
           <ErrorNotice error={error} />
-          <button className="btn btn-accent btn-block" disabled={busy}>
+          <button className="btn btn-accent btn-block" disabled={busy || Boolean(vehicle && form.passengers > vehicle.seats)}>
             {busy ? 'Booking…' : `Book transfer${vehicle ? `, ${money(vehicle.priceMinor, { whole: true })}` : ''}`}
           </button>
         </>

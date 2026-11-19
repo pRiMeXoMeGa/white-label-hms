@@ -40,41 +40,51 @@ export interface Resource<T> {
   reload: () => void;
 }
 
-/** Fetches `path` (re-fetching when it changes), optionally polling every `pollMs`. */
+/**
+ * Fetches `path` (re-fetching when it changes), optionally polling every `pollMs`.
+ * - Data from a previous path is never shown for a new one.
+ * - A poll is skipped while the previous request is still running.
+ * - Only the newest request's answer is kept, so a slow poll that started before an action
+ *   (a cancel, say) cannot overwrite the fresher result of the reload after it.
+ */
 export function useApi<T>(path: string | null, pollMs?: number): Resource<T> {
-  const [data, setData] = useState<T>();
-  const [error, setError] = useState<ApiError>();
+  const [state, setState] = useState<{ path: string | null; data?: T; error?: ApiError }>({ path });
   const [loading, setLoading] = useState(Boolean(path));
   const [tick, setTick] = useState(0);
-  const current = useRef(path);
-  current.current = path;
+  const latest = useRef(0);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     if (!path) return;
-    let alive = true;
+    const mine = ++latest.current;
+    inFlight.current = true;
     setLoading(true);
     api<T>(path)
       .then((d) => {
-        if (alive && current.current === path) {
-          setData(d);
-          setError(undefined);
-        }
+        if (latest.current === mine) setState({ path, data: d });
       })
-      .catch((e: unknown) => alive && setError(e instanceof ApiError ? e : new ApiError(0, 'error', String(e))))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
+      .catch((e: unknown) => {
+        if (latest.current !== mine) return;
+        const error = e instanceof ApiError ? e : new ApiError(0, 'error', String(e));
+        setState((s) => ({ path, data: s.path === path ? s.data : undefined, error }));
+      })
+      .finally(() => {
+        if (latest.current !== mine) return;
+        inFlight.current = false;
+        setLoading(false);
+      });
   }, [path, tick]);
 
   useEffect(() => {
     if (!path || !pollMs) return;
     const id = window.setInterval(() => {
-      if (document.visibilityState === 'visible') setTick((t) => t + 1);
+      if (document.visibilityState === 'visible' && !inFlight.current) setTick((t) => t + 1);
     }, pollMs);
     return () => window.clearInterval(id);
   }, [path, pollMs]);
 
   const reload = useCallback(() => setTick((t) => t + 1), []);
-  return { data, error, loading: loading && data === undefined, reload };
+  const current = state.path === path;
+  const data = current ? state.data : undefined;
+  return { data, error: current ? state.error : undefined, loading: (loading || !current) && data === undefined && Boolean(path), reload };
 }

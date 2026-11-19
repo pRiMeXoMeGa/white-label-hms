@@ -6,14 +6,14 @@ import { z } from 'zod';
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'expected a #rrggbb colour');
 const money = z.number().int().nonnegative();
-const hhmm = z.string().regex(/^\d{2}:\d{2}$/);
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'expected HH:mm');
 
 const TaxRule = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('percent'),
     code: z.string(),
     name: z.string(),
-    ratePercent: z.number().positive().max(100),
+    ratePercent: z.number().positive().max(100).refine((v) => Number.isInteger(Math.round(v * 100)) && Math.abs(v * 100 - Math.round(v * 100)) < 1e-9, 'at most 2 decimal places'),
     appliesTo: z.array(z.enum(['room', 'food', 'laundry', 'spa', 'transfer', 'other'])).min(1),
     // Codes of earlier taxes whose amounts are also part of this tax's basis (e.g. VAT on service charge).
     compoundOn: z.array(z.string()).default([]),
@@ -89,7 +89,7 @@ export const HotelConfigSchema = z.object({
     }),
   ),
   dining: z.array(CatalogItem),
-  laundry: z.object({ expressSurchargePercent: z.number().min(0), items: z.array(CatalogItem) }),
+  laundry: z.object({ expressSurchargePercent: z.number().min(0).max(100).refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-9, 'at most 2 decimal places'), items: z.array(CatalogItem) }),
   amenities: z.array(CatalogItem),
   housekeeping: z.array(CatalogItem),
   maintenanceCategories: z.array(z.string()).min(1),

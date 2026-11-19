@@ -4,19 +4,19 @@
 
 ## 10.1 Strategy
 
-I test at four levels:
+I test at six levels: unit, integration (including HTTP tests against a real server on a random port), end to end, responsive, live smoke test and type checking. The first four are automated:
 
 ```mermaid
 flowchart TB
-  E2E["Browser journey (Playwright)<br/>1 scenario, whole guest stay, real Chromium"] --> INT
-  INT["Integration tests (node:test)<br/>16 tests: modules + real SQLite in memory + fake clock"] --> UNIT
-  UNIT["Unit tests (node:test)<br/>4 tests: tax engine, rounding, card check"]
+  E2E["Browser journey + responsive check (Playwright)<br/>whole guest stay and 96 page/size checks, real Chromium"] --> INT
+  INT["Integration tests (node:test)<br/>25 tests: modules + real SQLite in memory + fake clock,<br/>3 of them over HTTP"] --> UNIT
+  UNIT["Unit tests (node:test)<br/>6 tests: tax engine, rounding, card checks, proxy address"]
 ```
 
 | Level | Tool | What it proves | Runs |
 | --- | --- | --- | --- |
-| Unit | `node:test` + `assert` | Pure rules: taxes, rounding, Luhn | `npm test`, CI, Docker build |
-| Integration | `node:test` + in-memory SQLite + `FixedClock` | Business rules end to end through the modules and the real schema, constraints and triggers | `npm test`, CI, Docker build |
+| Unit | `node:test` + `assert` | Pure rules: taxes, rounding, Luhn, card expiry, client address from `X-Forwarded-For` | `npm test`, CI, Docker build |
+| Integration | `node:test` + in-memory SQLite + `FixedClock` | Business rules end to end through the modules and the real schema, constraints and triggers; HTTP behaviour (malformed addresses, content type, lookup limits) through `createHttpServer` on a random port | `npm test`, CI, Docker build |
 | End to end | Playwright (`tests/e2e/journey.mjs`) | The built app works in a browser: every screen, no console errors, PDF downloads | `npm run e2e`, CI |
 | Responsive | Playwright (`tests/e2e/responsive.mjs`) | 12 pages × 8 screen sizes (320 px to 1920 px): no sideways scrolling, no controls under 32 px tall | `npm run e2e:responsive`, CI |
 | Live smoke test | Manual walkthrough in Chrome against the deployed site | Production build and hosting behave like local | After deploys |
@@ -48,11 +48,22 @@ flowchart TB
 | 18 | adjustments reduce the tax basis and empty bases produce no tax line | Refunds and taxes |
 | 19 | rounding happens once per tax, half away from zero | Money rounding |
 | 20 | card numbers are Luhn-checked | Card validation |
+| 21 | a malformed address gets a 400 and the server keeps answering | `/api/stays/%E0%A4%A` → 400, health still 200, `text/plain` body → 415 |
+| 22 | client address is read from the right of X-Forwarded-For, as many hops as trusted | Spoofed entries ignored, `TRUST_PROXY_HOPS` 0/1/2 |
+| 23 | only failed lookups count toward the lookup block, and known Stay IDs keep working | 3 unknown IDs → 4th answers 429; the guest's own Stay ID still 200 |
+| 24 | per-item quantity is capped after duplicate lines are merged | 15 + 10 refused, 10 + 10 accepted |
+| 25 | body rules: real numbers, real clock times, no expired cards, blank optional fields ignored | `"2"` refused for a number, `25:00` refused, expired card refused, `""` arrival time ignored |
+| 26 | after check-out time on the last day, new requests stop but check-out still works | 11:59 open, 12:00 `409 stay_ended`, `overdue` flag, check-out succeeds |
+| 27 | invoice numbers come from a per-year counter | 2026-00001, 2026-00002, then 2027-00001 |
+| 28 | percentages are computed in whole numbers, so decimal rates round correctly | 4.35% of AED 30.00 = 1.31 |
+| 29 | the check-out preview matches check-out exactly and changes nothing | No folio rows, no status change, no invoice number used; preview amount = invoice total |
+| 30 | early check-out shortens the reservation to the nights charged | `check_out`, room total, nights; Stay ID still returned after check-out |
+| 31 | check-out day: spa must finish by check-out time, arrivals pick-ups are refused, departures allowed | Spa slots end by 12:00; `from_airport` refused, `to_airport` booked |
 
 ### Browser journey steps (`npm run e2e`)
 
 Desktop 1280 px: home → availability → select Sea View Premier → fill guest and test card → confirm → check in online.
-Phone 390 px: stay home → dining cart (2 × Shakshuka, 1 × Karak chai) → order → home shows the order in progress → spa slot → express laundry → airport transfer → maintenance report → hotel info → bill → all requests → check out → rate 5 → download PDF → send feedback.
+Phone 390 px: stay home → dining cart (2 × Shakshuka, 1 × Karak chai) → order → home shows the order in progress → spa slot on tomorrow's date (always free, whatever time the run starts) → express laundry → airport transfer → home shows Upcoming → maintenance report → hotel info → bill → all requests → check out → rate 5 → download PDF → send feedback.
 The run fails on any browser console error. Screenshots are saved to `test-results/screenshots/`.
 
 ## 10.3 Results
@@ -61,8 +72,8 @@ The run fails on any browser console error. Screenshots are saved to `test-resul
 
 | Suite | Result |
 | --- | --- |
-| `npm test` | **20 / 20 passed** (~1 s) |
-| Server and test type checking | Passed |
+| `npm test` | **31 / 31 passed** (~1.5 s) |
+| Server, test and client type checking | Passed |
 | Browser journey against the production build | **Passed**, 0 console errors, PDF valid |
 | Responsive check, 96 page/size combinations | **Passed** after fixing 5 overflows on 320–375 px phones (search form, service tiles, bill and check-out totals) and the phone header |
 
@@ -119,6 +130,39 @@ I repeated every feature on the live site with booking SB-CC9FJ4, using the 10-s
 | After cancelling from an order's confirmation screen, the card still showed the old status and a Cancel button | The card updates from the cancel response straight away |
 | Future spa and transfer bookings sat under "In progress" until their booked time, which looked like a stuck timer | They are listed under a separate **Upcoming** section with a static progress bar |
 | House rules mentioned asking "in the app" for a late check-out, which the app does not offer | The rule now refers to reception |
+
+### Full project review (19 November 2026)
+
+Before handing the project over I had the whole repository reviewed in parallel: server, client, data and billing, security, build and CI, and the documents. The review only reported; I decided on each finding. These are the findings I fixed, all covered by the tests above or by the browser runs.
+
+| Area | Finding | Fix |
+| --- | --- | --- |
+| HTTP | A malformed percent-encoded address (`/api/stays/%E0%A4%A`) threw outside the error handler | Decoding is guarded and answers `400`; the whole request callback is wrapped (test 21) |
+| HTTP | The client address was the left-most `X-Forwarded-For` entry, which a client can set itself | Address taken `TRUST_PROXY_HOPS` from the right (test 22) |
+| HTTP | Every 404 counted as a failed lookup, and one guest's mistakes could block others on the same Wi-Fi | Only unknown booking references and Stay IDs count; codes that resolved recently keep working; the general budget is per Stay ID (test 23) |
+| HTTP | The rate limiter's memory grew with every new key | At most 50 000 keys, expired and then oldest dropped |
+| HTTP | `application/jsonx` passed the content-type check; `'` was not escaped in the injected brand text; no HSTS | Exact `application/json` match; `'` escaped; HSTS in production |
+| HTTP | Booking references and Stay IDs appeared in logs | Logged as `:code` |
+| Validation | Strings such as `"2"` were accepted for numbers; `99:99` passed as a time; expired cards were accepted; `""` failed optional fields | JSON numbers only, strict `HH:mm`, expiry this month or later, blank strings treated as absent (test 25) |
+| Ordering | 15 + 10 of the same item passed the 20-per-item limit once merged | Limit applied after merging (test 24) |
+| Stay end | Guests could keep ordering after check-out time on the last day | `409 stay_ended` after check-out time, an `overdue` flag and an in-app notice; check-out still open (test 26) |
+| Stay end | A spa treatment could run past check-out time on the last day; an airport pick-up could be booked for the departure day | Last-day treatments end by check-out time; pick-ups only before the check-out day (test 31) |
+| Billing | The check-out page estimated the total in the browser, which could differ from the amount charged | A server preview runs the check-out and rolls it back; the button shows the exact amount (test 29) |
+| Billing | Invoice numbers came from counting invoices, which repeats across years and under races | Per-year counter table, migration 2 (test 27) |
+| Billing | Percentages were computed in floating point, so 4.35% of AED 30.00 rounded down | Integer maths in hundredths of a percent; rates limited to two decimals (test 28) |
+| Billing | After an early check-out the booking still showed the original dates and room total | The reservation is shortened to the nights charged (test 30) |
+| Workflow | The scheduler's update did not exclude cancelled requests; check-in did not check that its update changed a row | Both conditions added |
+| Client | Clearing a date field crashed the search form; an unexpected error left a blank page | Empty dates handled; top-level error boundary |
+| Client | A lost connection replaced the in-stay app with an error page; old data could show for a new address; polls could stack and a slow poll could undo a cancel | Last data kept under a notice; data tied to its address; one request at a time; only the newest response kept |
+| Client | The card shown after ordering did not update; spa and transfer cancels had no confirmation | Live card after ordering; a second confirmation for spa and transfer cancels |
+| Client | The check-in button on the confirmation page looked active before check-in opened; "Your stay starts today" showed for any open check-in | Disabled button before the window; message depends on the arrival date |
+| Client | Sold-out or too-small rooms could be booked from a direct link; a transfer with too many passengers could be submitted; past laundry pickup times were offered | All three blocked in the form |
+| Client | `/stay/` opened an empty stay; the Services tab was not highlighted on service pages; "Nothing in progress" showed above upcoming bookings | Stay ID form; tab highlighted; copy points to Upcoming |
+| Accessibility | Every request card was a live region; muted text was 4.6:1 on white and 4.0:1 on the page background; focus stayed on the old link after navigation | One live region; `aria-current="step"`; muted text darker (6.4:1 and 5.5:1); focus moves to the heading |
+| Build | Production client shipped source maps; the e2e spa step depended on the time of day; CI had no time limit or image build | No client source maps; tomorrow's spa slot; 15-minute limits, `wait-on` timeout, a Docker build job |
+| Build | `npm run dev` used a Node flag newer than 22.13; `npm ci` was not used when a lockfile exists | `.env` passed only when present; `npm ci` with a lockfile, `npm install` without |
+
+Findings I decided not to change in the MVP are listed as limitations L17 to L20 in [section 13](13-limitations-future-scope.md).
 
 ## 10.4 Tests I plan to add
 

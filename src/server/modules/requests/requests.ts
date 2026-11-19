@@ -3,7 +3,7 @@ import type { FolioCategory, ServiceRequestDto, ServiceType } from '../../../sha
 import { nowIso, today, type AppContext } from '../../context';
 import { badRequest, conflict, notFound } from '../../lib/errors';
 import { percentOf, sum } from '../../lib/money';
-import { hotelLocalToUtc } from '../../lib/time';
+import { HHMM_RE, hotelLocalToUtc } from '../../lib/time';
 import { postEntry } from '../billing/folio';
 import type { ReservationRow } from '../reservations';
 import { CANCELLED, WORKFLOWS, isFinalStage, nextTransitionAt, stageAt } from './workflows';
@@ -99,16 +99,18 @@ export function getRequestRow(ctx: AppContext, id: number): ServiceRequestRow | 
 
 // ---------- Catalogue-based services: dining, laundry, amenities, housekeeping ----------
 
+const MAX_PER_ITEM = 20;
+
 const ItemLine = z.object({
-  itemId: z.coerce.number().int().positive(),
-  quantity: z.coerce.number().int().min(1).max(20),
+  itemId: z.number().int().positive(),
+  quantity: z.number().int().min(1).max(MAX_PER_ITEM),
 });
 
 export const CatalogOrderSchema = z.object({
   items: z.array(ItemLine).min(1).max(30),
   notes: z.string().trim().max(300).optional(),
   express: z.boolean().optional(),
-  pickupTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  pickupTime: z.string().regex(HHMM_RE, 'Use HH:mm, for example 10:00').optional(),
 });
 export type CatalogOrderInput = z.infer<typeof CatalogOrderSchema>;
 
@@ -135,6 +137,7 @@ export function createCatalogOrder(
 ): ServiceRequestRow {
   const merged = new Map<number, number>();
   for (const l of input.items) merged.set(l.itemId, (merged.get(l.itemId) ?? 0) + l.quantity);
+  if ([...merged.values()].some((q) => q > MAX_PER_ITEM)) throw badRequest(`You can order up to ${MAX_PER_ITEM} of each item`);
 
   const items = [...merged.entries()].map(([itemId, quantity]) => {
     const row = ctx.db.get<CatalogRow>('SELECT * FROM catalog_items WHERE id = ?', [itemId]);
@@ -306,8 +309,8 @@ export function advanceDueRequests(ctx: AppContext): number {
       const next = nextTransitionAt(row.service, stage, now, delayFor(ctx, row.service), scheduledEndUtc(ctx, row));
       const res = ctx.db.run(
         `UPDATE service_requests SET stage = ?, status = ?, next_transition_at = ?, updated_at = ?
-         WHERE id = ? AND stage = ?`,
-        [stage, s.status, next?.toISOString() ?? null, now.toISOString(), row.id, row.stage],
+         WHERE id = ? AND stage = ? AND status <> ?`,
+        [stage, s.status, next?.toISOString() ?? null, now.toISOString(), row.id, row.stage, CANCELLED],
       );
       if (res.changes === 1) {
         ctx.db.run('INSERT INTO service_request_events (request_id, status, created_at) VALUES (?, ?, ?)', [

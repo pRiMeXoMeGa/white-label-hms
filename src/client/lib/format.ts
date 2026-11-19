@@ -53,13 +53,17 @@ export function isUpcoming(r: { scheduledAt: string | null; isFinal: boolean; is
   return Boolean(r.scheduledAt) && !r.isFinal && !r.isCancelled && r.scheduledAt! > hotelNowLocal(timeZone);
 }
 
+/** Adds days to YYYY-MM-DD; returns '' for an empty or invalid date instead of throwing. */
 export function addDays(iso: string, days: number): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
   const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return '';
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
 export function nightsBetween(a: string, b: string): number {
+  if (!a || !b) return 0;
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 }
 

@@ -3,7 +3,7 @@ import type { ServiceRequestDto } from '../../../shared/types';
 import { ErrorNotice, Field, Spinner, gap } from '../../components/ui';
 import { ApiError, post, useApi } from '../../lib/api';
 import { StayHomeButton } from './CatalogOrder';
-import { RequestCard } from './RequestCard';
+import { LiveRequestCard } from './RequestCard';
 import { BackLink, useStay } from './StayApp';
 
 export function Maintenance() {
@@ -34,7 +34,7 @@ export function Maintenance() {
       <div className="stack">
         <BackLink>Home</BackLink>
         <h1 style={{ fontSize: 'var(--step-2)' }}>Issue reported</h1>
-        <RequestCard r={done} onChange={() => undefined} />
+        <LiveRequestCard r={done} />
         <StayHomeButton />
       </div>
     );

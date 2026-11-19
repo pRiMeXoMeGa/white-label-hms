@@ -22,6 +22,15 @@ export class FixedClock implements Clock {
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** A real 24-hour clock time, 00:00 to 23:59. */
+export const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** "Wed 25 Nov 2026", for messages shown to guests. */
+export function humanDate(date: string): string {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(`${date}T12:00:00Z`),
+  );
+}
 const LOCAL_DT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
 export function isIsoDate(s: string): boolean {

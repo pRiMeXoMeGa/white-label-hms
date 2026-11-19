@@ -15,7 +15,7 @@
   --sea-glass: var(--surface);
   --paper: #ffffff;
   --line: color-mix(in srgb, var(--ink) 14%, transparent);
-  --muted: color-mix(in srgb, var(--ink) 62%, var(--paper));
+  --muted: color-mix(in srgb, var(--ink) 72%, var(--paper));
   --brand-soft: color-mix(in srgb, var(--brand) 9%, var(--paper));
   --accent-soft: color-mix(in srgb, var(--accent) 18%, var(--paper));
   --danger: #b3261e;

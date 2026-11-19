@@ -38,11 +38,11 @@ My design and project documentation is in [`docs/`](docs/README.md):
 | | Spa booking by time slot, airport transfer (to or from DXB/DWC, by car type) | |
 | | Hotel info: Wi-Fi password, opening hours, house rules, local guide | |
 | | Live status for every request, live itemised bill with taxes | |
-| 4. Check out | Pays the balance; leaving early releases unused nights and refunds spa bookings not yet started and transfers booked for a later day; PDF tax invoice, star rating | `/stay/:stayId/checkout` |
+| 4. Check out | Sees the exact amount first, then pays; leaving early releases unused nights and refunds spa bookings not yet started and transfers booked for a later day; PDF tax invoice, star rating | `/stay/:stayId/checkout` |
 
-Other pages: **Manage booking** (`/manage`) to look up or cancel a booking or recover a lost Stay ID. Step-by-step screenshots are in the [user guide](docs/14-user-guide.md).
+Other pages: **Manage booking** (`/manage`) to look up or cancel a booking, recover a lost Stay ID or reopen the invoice after check-out. Step-by-step screenshots are in the [user guide](docs/14-user-guide.md).
 
-Test card: `4242 4242 4242 4242`, any future expiry, any CVC. No real payment is taken.
+Test card: `4242 4242 4242 4242`, any expiry from the current month on, any CVC. No real payment is taken.
 
 ## Running it
 
@@ -54,7 +54,7 @@ npm run build
 npm start            # http://localhost:3000
 ```
 
-`npm run dev` rebuilds the client and restarts the server on every change. `npm run seed:reset`, or starting with `RESET_DB_ON_START=true`, resets the demo database.
+`npm ci` replaces `npm install` once a `package-lock.json` is committed. `npm run dev` rebuilds the client and restarts the server on every change. `npm run seed:reset`, or starting with `RESET_DB_ON_START=true`, resets the demo database.
 
 ## Configuration
 
@@ -72,7 +72,7 @@ This version has no staff panel. A scheduler plays the hotel team and moves each
 
 With the defaults a dining order goes received → preparing → on the way → delivered in about 30 seconds. Spa treatments and transfers move to *completed* when their booked time slot ends, not on the timer.
 
-Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_MINUTE`, …) are listed in [`.env.example`](.env.example) and the [configuration reference](docs/04-deployment-devops.md#45-configuration-reference). `npm start` and `npm run dev` read a `.env` file if there is one.
+Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_MINUTE`, `TRUST_PROXY_HOPS`, …) are listed in [`.env.example`](.env.example) and the [configuration reference](docs/04-deployment-devops.md#45-configuration-reference). `npm start` and `npm run dev` read a `.env` file if there is one.
 
 ### White-label config
 
@@ -113,14 +113,14 @@ My reasoning and the alternatives I considered are in the [decision records](doc
 | Concern | Decision |
 | --- | --- |
 | No double bookings | Every sold room-night is a row in `room_nights` with primary key `(room_id, night)`. Bookings run in a `BEGIN IMMEDIATE` transaction, and the key rejects a second sale even if application code were wrong. On Postgres this becomes an `EXCLUDE USING gist` constraint on a date range. |
-| Money | Integers in minor units (fils); no floats. |
+| Money | Integers in minor units (fils); no floats, percentages included. Invoice numbers come from a per-year counter. |
 | Ledger | `folio_entries` is append-only, enforced by database triggers. Cancellations and early departures add negative adjustment rows; nothing is edited or deleted. |
 | Taxes | A small rules engine applies taxes in configured order; a tax can compound on earlier ones. The demo is set up like Dubai: 10% service charge, 7% municipality fee on room and food, AED 15 Tourism Dirham per room night, and 5% VAT on top of all of them. Each tax is rounded once. |
-| Frozen invoice | At check-out the bill is snapshotted into `invoices`; the final bill is read from the snapshot, never recalculated. |
+| Check-out | A preview runs the real check-out in a transaction and rolls it back, so the amount on the button is the amount charged. At check-out the bill is snapshotted into `invoices`; the final bill is read from the snapshot, never recalculated. |
 | Request lifecycle | Each service is a linear state machine (`received → preparing → on_the_way → delivered` for dining). Every transition is written to `service_request_events`, so the timeline is auditable. |
 | Spa capacity | Three treatment rooms × 30-minute slots, locked in `spa_slot_locks` with a primary key, so a slot can't be over-sold. |
-| No login, still safe | A booking needs reference + last name. The Stay ID has about 59 bits of randomness, works only for that stay, and repeated failed lookups are rate-limited per IP. The Wi-Fi password is only returned to checked-in stays. Only the last 4 digits of the card and of the ID document are stored. |
-| Time | Stay dates are hotel-local calendar dates (`Asia/Dubai` from config); system timestamps are UTC. |
+| No login, still safe | A booking needs reference + last name. The Stay ID has about 59 bits of randomness, works only for that stay, and repeated lookups of codes that do not exist are rate-limited per client address (taken from the trusted proxy's `X-Forwarded-For` entry). The Wi-Fi password is only returned to checked-in stays. Only the last 4 digits of the card and of the ID document are stored. |
+| Time | Stay dates are hotel-local calendar dates (`Asia/Dubai` from config); system timestamps are UTC. New requests close at check-out time on the last day. |
 
 ### Data model
 
@@ -142,6 +142,10 @@ erDiagram
   spa_treatments ||..o{ service_requests : "booked as"
   reservations ||--o| invoices : "closed by"
   reservations ||--o| feedback : receives
+  invoice_sequences {
+    text year PK
+    int last
+  }
 ```
 
 ### API
@@ -168,6 +172,7 @@ All endpoints are JSON under `/api`. Errors look like `{ "error": { "code": "sol
 | GET | `/stays/:stayId/requests` | All requests with status timeline |
 | POST | `/stays/:stayId/requests/:id/cancel` | Cancel while still allowed |
 | GET | `/stays/:stayId/bill` | Live itemised bill with taxes |
+| GET | `/stays/:stayId/checkout-preview` | What check-out would charge and release, without changing anything |
 | POST | `/stays/:stayId/checkout` | Pay and check out, returns the invoice |
 | GET | `/stays/:stayId/invoice`, `/stays/:stayId/invoice.pdf` | Invoice as JSON or PDF |
 | POST | `/stays/:stayId/feedback` | Rating after check-out |
@@ -176,15 +181,15 @@ All endpoints are JSON under `/api`. Errors look like `{ "error": { "code": "sol
 ## Tests
 
 ```bash
-npm test                 # 20 unit and integration tests, in-memory database and a fake clock
+npm test                 # 31 unit, integration and HTTP tests, in-memory database and a fake clock
 npm run typecheck
 npm run e2e              # full guest journey in headless Chromium, with screenshots (app must be running)
 npm run e2e:responsive   # 12 pages x 8 screen sizes (320-1920 px): no sideways scrolling, no tiny controls
 ```
 
-The tests cover overbooking prevention (in code and at the database level), weekend pricing, the tax stack and rounding, check-in windows, orders posting to the folio, per-service auto-advance timings, cancellation rules, spa capacity and lead time, transfer validation, early check-out with released nights and refunded spa, invoice freezing, the append-only ledger, and the housekeeping turnaround.
+The tests cover overbooking prevention (in code and at the database level), weekend pricing, the tax stack and rounding, check-in windows, orders posting to the folio, per-service auto-advance timings, cancellation rules, spa capacity and lead time, transfer validation, early check-out with released nights and refunded spa, invoice freezing and per-year numbering, the check-out preview, the end-of-stay rules, the append-only ledger, the housekeeping turnaround, and the HTTP layer (malformed addresses, content type, proxy address, lookup limits).
 
-CI (GitHub Actions) runs typecheck, tests, build, the browser journey and the responsive check on every push. The test catalogue and the results of testing the live site are in [Testing and test report](docs/10-testing.md).
+CI (GitHub Actions) runs typecheck, tests, build, the browser journey, the responsive check and a Docker image build on every push. The test catalogue and the results of testing the live site are in [Testing and test report](docs/10-testing.md).
 
 ## Deploy
 
@@ -201,19 +206,22 @@ config/hotel.json          white-label configuration (the demo hotel)
 docs/                      design and project documentation (14 documents + screenshots)
 src/shared/types.ts        API types shared by server and client
 src/server/
+  index.ts, context.ts     start-up and shutdown; AppContext (db, config, hotel, clock)
+  keep-alive.ts            self-ping that keeps the free Render service awake
   config/                  env + hotel config loading and validation
-  db/                      SQLite wrapper, migrations, seed
+  db/                      SQLite wrapper, migrations, seed, reset
   http/                    server, router, routes
+  lib/                     errors, money, time, codes, rate limiting
   modules/                 availability, reservations, stays, requests (workflows, scheduler),
                            scheduled services (spa, transfers), billing (folio, tax, PDF), checkout
 src/client/
   pages/                   public site pages
   pages/stay/              in-stay app
-  components/, lib/        UI pieces, router, API client, formatting
+  components/, lib/        UI pieces, error boundary, router, API client, formatting, live region
   index.html, styles.css   page shell and all styles (brand colours as CSS variables)
 public/                    static files (favicon)
 scripts/                   build and dev scripts (esbuild)
-tests/                     node:test suites
+tests/                     node:test suites (booking, stay, tax, hardening) and shared helpers
 tests/e2e/                 browser journey and responsive check (Playwright)
 .github/workflows/ci.yml   CI pipeline
 Dockerfile, render.yaml    container image and Render Blueprint

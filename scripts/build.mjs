@@ -2,13 +2,15 @@
 import { build } from 'esbuild';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export function clientOptions({ minify = true } = {}) {
   return {
     entryPoints: { app: 'src/client/main.tsx' },
     bundle: true,
     minify,
-    sourcemap: true,
+    // Source maps only in development; the production client ships without them.
+    sourcemap: !minify,
     format: 'esm',
     target: ['es2022', 'safari16'],
     jsx: 'automatic',
@@ -54,7 +56,7 @@ export async function buildServer() {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await buildClient();
   await buildServer();
   console.log('Build complete: dist/client and dist/server');

@@ -31,6 +31,7 @@ export function SearchForm({ initial }: { initial?: Search }) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (!s.checkIn || !s.checkOut || s.checkOut <= s.checkIn) return;
     navigate(`/rooms?${searchQuery(s)}`);
   };
 
@@ -44,12 +45,13 @@ export function SearchForm({ initial }: { initial?: Search }) {
           value={s.checkIn}
           onChange={(e) => {
             const checkIn = e.target.value;
-            set({ checkIn, checkOut: s.checkOut <= checkIn ? addDays(checkIn, 1) : s.checkOut });
+            // A cleared field leaves check-out alone; a later check-in pushes check-out forward.
+            set({ checkIn, checkOut: checkIn && s.checkOut <= checkIn ? addDays(checkIn, 1) : s.checkOut });
           }}
         />
       </Field>
       <Field label="Check-out">
-        <input type="date" required min={addDays(s.checkIn, 1)} value={s.checkOut} onChange={(e) => set({ checkOut: e.target.value })} />
+        <input type="date" required min={addDays(s.checkIn, 1) || addDays(hotel.today, 1)} value={s.checkOut} onChange={(e) => set({ checkOut: e.target.value })} />
       </Field>
       <Field label="Adults">
         <select value={s.adults} onChange={(e) => set({ adults: Number(e.target.value) })}>

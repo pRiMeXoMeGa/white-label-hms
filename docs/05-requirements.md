@@ -43,7 +43,9 @@ I wrote these stories before building and used the acceptance criteria as my tes
 - Invalid dates return a clear message (e.g. "Check-in date cannot be in the past").
 
 **US-02 Book a room**: As a guest, I want to book a room with my details and a card guarantee.
-- Required: first and last name, email, phone, card holder, card number (Luhn-valid), expiry `MM/YY`, acceptance of terms.
+- Required: first and last name, email, phone (6–30 characters), card holder, card number (Luhn-valid), expiry `MM/YY` that is not in the past, acceptance of terms.
+- The confirm button shows the room total and says it is before taxes.
+- A sold-out room type, or one too small for the party, cannot be booked even from a direct link.
 - On success the guest sees a booking reference like `SB-7K3QXA`, the stay summary and the room total.
 - If the last room was taken in the meantime, the guest gets "no longer available" and nothing is booked.
 - No two bookings can ever hold the same room on the same night.
@@ -52,40 +54,42 @@ I wrote these stories before building and used the acceptance criteria as my tes
 **US-03 Manage or cancel**: As a guest, I want to look up my booking and cancel it if plans change.
 - Lookup needs the booking reference **and** last name (case-insensitive); a wrong pair says the booking was not found.
 - A booking can be cancelled online until check-in; the room goes back on sale immediately.
-- A checked-in guest who lost their Stay ID can recover it here.
+- A guest who lost their Stay ID can recover it here, during the stay and after check-out.
 
 ### Check-in
 
 **US-04 Online check-in**: As a guest, I want to check in from my phone and know my room number.
 - Opens on the arrival date (or `EARLY_CHECKIN_DAYS` before) and closes at check-out date.
-- Requires nationality, document type (passport, Emirates ID, national ID), document number, acceptance of house rules; arrival time optional.
+- Requires nationality, document type (passport, Emirates ID, national ID), document number, acceptance of house rules; arrival time optional, as a 24-hour `HH:mm` time.
 - On success: room number, floor, room type and a Stay ID such as `UX7E-MCVN-TKAP`; the Stay ID is remembered on the device.
 - Repeating check-in with the same details returns the same stay.
 - Only the last 4 characters of the document number are stored.
 
 ### In-stay services
 
-**US-05 In-room dining**: Browse the menu by section, add items to a cart, add notes, place the order. The order shows live status (received, preparing, on the way, delivered) and is added to the bill.
+**US-05 In-room dining**: Browse the menu by section, add items to a cart (up to 20 of each item), add notes, place the order. The order shows live status (received, preparing, on the way, delivered) and is added to the bill.
 
-**US-06 Laundry**: Choose items and quantities, regular or express (+50%), pickup time. Status: received, picked up, cleaning, returned.
+**US-06 Laundry**: Choose items and quantities, regular or express (+50%), and a pickup time; only times still ahead today are offered, and after the last one the times are for tomorrow. Status: received, picked up from the room, washing and pressing, returned to the room.
 
 **US-07 Housekeeping and amenities**: Request cleaning, towels, turndown, toiletries, extra pillow, baby cot, adapters and similar. Free of charge.
 
-**US-08 Report an issue**: Pick a category (air conditioning, plumbing, electrical, TV/Wi-Fi, door, other), describe it, optionally mark urgent. Status: reported, technician assigned, being fixed, resolved.
+**US-08 Report an issue**: Pick a category (air conditioning, plumbing or water, electrical or lights, TV or Wi-Fi, door or lock, other), describe it, optionally mark urgent. Status: reported, technician assigned, being fixed, resolved.
 
 **US-09 Spa booking**: Choose a treatment, a day during the stay and a free start time.
-- Slots run every 30 minutes within opening hours (10:00–22:00) and must end by closing.
+- Slots run every 30 minutes within opening hours (10:00–22:00) and must end by closing; on the check-out day they must end by check-out time (12:00).
 - Slots less than 60 minutes ahead are unavailable.
 - At most 3 treatments overlap (3 treatment rooms); a taken slot cannot be booked.
-- Status: requested, confirmed, completed (after the slot ends). Cancellable until 60 minutes before.
+- Status: requested, confirmed, completed (after the slot ends). Cancellable until 60 minutes before, after a second confirmation.
 
 **US-10 Airport transfer**: Choose direction (hotel to airport or airport to hotel), airport (DXB, DWC), day and time, flight number, passengers, car type (sedan, SUV, luxury).
-- At least 2 hours' notice; not after the check-out day; passengers must fit the car.
+- At least 2 hours' notice; passengers must fit the car (the book button stays disabled until they do).
+- Hotel to airport: any time up to the end of the check-out day. Airport to hotel: on a day before the check-out day.
+- Cancellable until 2 hours before pickup, after a second confirmation.
 - Fixed price per car added to the bill. Status: requested, confirmed, driver assigned, completed.
 
 **US-11 Hotel info**: Checked-in guests see the Wi-Fi network and password (with a copy button), opening hours, house rules, a local guide with distances, and reception contacts.
 
-**US-12 Request status**: Every request shows its current status, a progress bar and when it was requested. Confirmed spa and transfer bookings appear under Upcoming until their booked time. Requests can be cancelled before work starts; the charge is reversed on the bill.
+**US-12 Request status**: Every request shows its current status, a progress bar and when it was requested, and keeps updating on its own, including on the confirmation shown right after ordering. Spa and transfer bookings appear under Upcoming until their booked time. A request can be cancelled until staff start on it (spa up to 60 minutes before, transfers up to 2 hours before), and its charge is reversed on the bill.
 
 ### Billing and check-out
 
@@ -93,7 +97,9 @@ I wrote these stories before building and used the acceptance criteria as my tes
 
 **US-14 Express check-out**: As a departing guest, I want to pay and leave.
 - Pay with the card used to book (shown as e.g. "Visa ending 4242") or another card.
-- Leaving early: nights after today are released and removed from the bill (at least one night is charged); spa bookings not yet started and transfers booked for a later day are cancelled and refunded.
+- The amount on the pay button is exactly what is charged; it is worked out by the server before the guest pays.
+- Leaving early: unused nights from today onwards are released and removed from the bill (at least one night is charged), and the booking is shortened to the nights charged; spa bookings not yet started and transfers booked for a later day are cancelled and refunded. The page lists what is released before the guest pays.
+- After check-out time on the last day, new orders and bookings are closed and the app says so; check-out stays open.
 - Afterwards: "Thank you" page, total paid, invoice number, **PDF tax invoice** download, and the stay becomes read-only.
 
 **US-15 Feedback**: After check-out, rate the stay 1–5 with an optional comment, once.

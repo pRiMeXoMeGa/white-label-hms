@@ -28,7 +28,8 @@ export function Confirmation({ code }: { code: string }) {
     );
   }
 
-  const canCheckInNow = hotel.today >= r.canCheckInFrom;
+  const canCheckInNow = hotel.today >= r.canCheckInFrom && hotel.today < r.checkOut;
+  const startsToday = r.checkIn === hotel.today;
 
   return (
     <div className="container page">
@@ -46,14 +47,22 @@ export function Confirmation({ code }: { code: string }) {
             app.
           </p>
           {canCheckInNow ? (
-            <Notice tone="ok">Your stay starts today, so online check-in is already open.</Notice>
+            <Notice tone="ok">
+              {startsToday ? 'Your stay starts today, so online check-in is already open.' : 'Online check-in is already open for this booking.'}
+            </Notice>
           ) : (
             <Notice>Online check-in opens on {longDate(r.canCheckInFrom)}.</Notice>
           )}
           <div className="row">
-            <Link className="btn btn-accent" href={`/check-in?code=${r.code}`} aria-disabled={!canCheckInNow}>
-              Check in online
-            </Link>
+            {canCheckInNow ? (
+              <Link className="btn btn-accent" href={`/check-in?code=${r.code}`}>
+                Check in online
+              </Link>
+            ) : (
+              <button type="button" className="btn btn-accent" disabled>
+                Check in online
+              </button>
+            )}
             <Link className="btn btn-ghost" href={`/manage?code=${r.code}`}>
               Manage booking
             </Link>

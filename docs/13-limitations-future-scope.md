@@ -16,14 +16,18 @@ The limitations I accepted for the two-day MVP:
 | L6 | **SQLite, single instance**; in-memory rate limiter; scheduler in the web process | No high availability or horizontal scaling | One hotel's load is tiny ([section 9](09-performance-scalability.md)) | Phase 3 |
 | L7 | **Data resets** on the free Render plan | Bookings vanish when I deploy a new version or Render restarts the service; a keep-awake ping prevents the 15-minute idle restart | Clean slate for every reviewer | Paid plan + disk (any time) |
 | L8 | **Polling** for live status | Extra requests while the app is open | Simple and reliable at this scale | Phase 3 |
-| L9 | **Stay ID in the URL** as a bearer key | Visible in history and screenshots | 59-bit random, rate-limited, only valid while checked in | Phase 2 |
+| L9 | **Stay ID in the URL** as a bearer key | Visible in history and screenshots | 59-bit random and rate-limited; it changes nothing after check-out, when it only reads the bill, invoice and requests | Phase 2 |
 | L10 | **Room assigned at booking**; no room moves, upgrades or out-of-order management UI | Front desk can't reorganise rooms | Guarantees exact inventory per night | Phase 2 |
 | L11 | **Single rate per room type** + weekend uplift; no rate plans, promotions or restrictions | No revenue management | Pricing engine is isolated in `priceStay()` | Phase 4 |
 | L12 | **No channel manager** or OTA sync | Only direct bookings | The inventory model (`room_nights`) is what an OTA sync updates | Phase 4 |
 | L13 | **No night audit or accounting export** | Revenue must be read from invoices | Append-only ledger is the right base for it | Phase 3 |
 | L14 | **No guest profiles or history** | Returning guests start fresh | No login by design | Phase 3 |
-| L15 | **Free cancellation always**; no deposit or no-show rules | No protection against no-shows | Policies are config-ready | Phase 2 |
-| L16 | **Government guest reporting** (e.g. local police/tourism registers) not automated | Front desk must register guests from the ID | Only the last 4 ID characters are stored on purpose | Phase 3 |
+| L15 | **Free cancellation always**; no deposit or no-show rules | No protection against no-shows | Cancellation runs through one function, where a policy check fits; no money is taken in the demo | Phase 2 |
+| L16 | **Government guest reporting** (e.g. local police/tourism registers) not automated | The front desk registers guests from the original document at key collection | Only the last 4 ID characters are stored on purpose | Phase 3 |
+| L17 | **Bookings need no payment**; the booking lookup returns the guest's contact details | Rooms can be held with a test card and never paid for; anyone with the reference and last name sees the email and phone | Payments are mocked in the demo (L3), and the pair is the same credential airlines use | Phase 2 |
+| L18 | **Stay ID recovery by reference + last name** on Manage booking | Anyone who knows both can open the stay | No email or SMS exists yet to send a one-time code (L4) | Phase 2 |
+| L19 | **PDF invoice in a standard PDF font**; amounts assume 2-decimal currencies | Characters outside basic Latin (e.g. Arabic names) print as spaces; a 0- or 3-decimal currency would print wrongly | The demo hotel uses AED and English | Phase 3 |
+| L20 | **Failed-lookup counter per network address** | Guests on the same hotel Wi-Fi share it; one guest's typing mistakes count for all | Codes that opened successfully in the last 24 hours bypass the block, and the general budget is per Stay ID | Phase 2 |
 
 ## 13.2 Future scope by phase
 

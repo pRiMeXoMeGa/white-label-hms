@@ -114,6 +114,6 @@ These are the key decisions I made for the MVP. Each record states the context, 
 
 **Context.** Floating-point amounts produce rounding errors in bills and taxes.
 
-**Decision.** I store and compute all amounts in fils (integers) and round each tax once on its total, half away from zero.
+**Decision.** I store and compute all amounts in fils (integers) and round each tax once on its total, half away from zero. Percentages are computed in integers too, with the rate in hundredths of a percent, so a rate such as 4.35% never picks up a floating-point error. Invoice numbers come from a per-year counter row taken inside the check-out transaction.
 
 **Consequences.** Totals always add up to the fil on screen, in the PDF and in the database. Formatting to `AED 1,234.56` happens only at the edges.

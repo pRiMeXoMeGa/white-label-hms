@@ -94,9 +94,10 @@ Detailed sequence diagrams are in the [LLD](02-low-level-design.md#24-sequence-d
 | Search | Count free rooms per room type for the date range; price each night (weekend uplift) | Read-only |
 | Book | In one write transaction: pick a free room, create the reservation, insert one `room_nights` row per night | A room-night can be sold once (primary key) |
 | Check in | Booking reference + last name; window check; issue Stay ID; post one room charge per night | Idempotent for the same booking |
-| Order a service | Validate items against the catalogue, snapshot prices, create the request and its first status, post charges | All in one transaction |
+| Order a service | Validate items against the catalogue, snapshot prices, create the request and its first status, post charges; closed after check-out time on the last day | All in one transaction |
 | Auto-progress | Scheduler finds requests whose `next_transition_at` has passed and moves each one stage on | Each move is conditional on the expected stage (no double moves) |
-| Check out | Release unused nights, cancel future spa and later-day transfers, post taxes and payment, freeze an invoice, close the stay, mark the room dirty | One transaction; a stay closes once |
+| Check-out preview | Runs the whole check-out inside a transaction and rolls it back, to show the exact amount and what is released | Nothing is written |
+| Check out | Release unused nights, cancel future spa and later-day transfers, post taxes and payment, take the next invoice number for the year, freeze the invoice, shorten the reservation to the nights charged, close the stay, mark the room dirty | One transaction; a stay closes once |
 
 ## 1.5 Technology choices
 
@@ -117,19 +118,19 @@ The reasoning behind each choice is in my [decision records](11-decision-records
 
 | Concern | Approach | Detail |
 | --- | --- | --- |
-| Security | Unguessable Stay ID, rate-limited failed lookups, CSP and other headers, minimal PII | [Security](08-security-privacy.md) |
+| Security | Unguessable Stay ID, rate-limited failed lookups, CSP, HSTS and other headers, minimal PII | [Security](08-security-privacy.md) |
 | Money | Integer minor units (fils); taxes rounded once per tax | [LLD 2.6](02-low-level-design.md#26-billing-and-tax-engine) |
 | Time | Stay dates in the hotel time zone (`Asia/Dubai`); timestamps in UTC | [LLD 2.8](02-low-level-design.md#28-time-handling) |
 | Configuration | Env vars for runtime behaviour; `hotel.json` for the property | [Deployment 4.5](04-deployment-devops.md#45-configuration-reference) |
 | Observability | One JSON log line per API request and per scheduler action; `/api/health` | [Runbook](12-runbook.md) |
-| Testing | 20 unit/integration tests on a fake clock; browser journey with Playwright | [Testing](10-testing.md) |
+| Testing | 31 unit, integration and HTTP tests on a fake clock; browser journey and responsive check with Playwright | [Testing](10-testing.md) |
 
 ## 1.7 Deployment view
 
 ```mermaid
 flowchart LR
   Dev[Developer] -->|git push| GH[GitHub repo]
-  GH -->|Actions: typecheck, test, build, e2e| CI[CI]
+  GH -->|"Actions: typecheck, test, build, e2e, Docker build"| CI[CI]
   GH -->|webhook| R[Render]
   R -->|docker build: npm test + build| Img[Image]
   Img --> Svc["Web service<br/>white-label-hms.onrender.com"]

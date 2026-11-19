@@ -63,6 +63,8 @@ await shot('09-home-in-progress');
 
 await page.goto(BASE + stayLink + '/spa');
 await page.getByText('Swedish massage').click();
+// Tomorrow always has free slots, whatever time of day the journey runs.
+await page.getByRole('group', { name: 'Day' }).getByRole('button').nth(1).click();
 await page.waitForSelector('.slot');
 const firstFree = page.locator('.slot:not([disabled])').first();
 await firstFree.click();
@@ -84,6 +86,13 @@ await shot('11-transfer');
 await page.getByRole('button', { name: /Book transfer/ }).click();
 await page.waitForSelector('.request');
 await shot('11b-transfer-booked');
+
+// Home now lists the spa treatment and the transfer under Upcoming.
+await page.goto(BASE + stayLink);
+await page.waitForSelector('#upcoming-title');
+await page.locator('#upcoming-title').scrollIntoViewIfNeeded();
+await page.evaluate(() => window.scrollBy(0, -120));
+await shot('11c-home-upcoming', false);
 
 await page.goto(BASE + stayLink + '/maintenance');
 await page.getByText('Air conditioning').click();
