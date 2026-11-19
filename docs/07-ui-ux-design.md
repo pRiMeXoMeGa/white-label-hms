@@ -2,7 +2,7 @@
 
 **Related:** [User guide](14-user-guide.md), [Requirements](05-requirements.md)
 
-## 7.1 Design goals
+## 7.1 My design goals
 
 1. **One journey, no detours.** Every screen points to the next step of the stay: book → check in → order → check out.
 2. **Phone first for the stay.** The in-stay app is built for a 390 px screen held in one hand: big targets, a fixed tab bar, the cart pinned above it.
@@ -72,7 +72,7 @@ flowchart TB
 | Check out | Pay and leave | Early-departure and refund notices, total due, itemised toggle, card on file or new card | Already checked out |
 | Thank you | Close the loop | Total paid, invoice number, PDF download, 1–5 rating and comment | Feedback already sent |
 
-Screenshots of each are in the [user guide](14-user-guide.md).
+The [user guide](14-user-guide.md) has screenshots of each screen.
 
 ## 7.4 Visual language
 
@@ -86,9 +86,9 @@ Screenshots of each are in the [user guide](14-user-guide.md).
 | derived | `color-mix()` of the above | Soft tints, lines, muted text, so a new palette stays harmonious |
 
 - **Type:** one sans-serif family (system stack starting with Avenir Next / Segoe UI) with weight contrast: 800 for headlines and big numbers, 600–700 for labels, 400 for body. Prices and codes use tabular figures.
-- **Motif: the Gulf arch.** Room illustrations, the hero, the key card and the step markers use an arched top (`border-radius: 999px 999px …`). It is the one signature element; everything else is quiet.
+- **Motif: the Gulf arch.** I gave room illustrations, the hero, the key card and the step markers an arched top (`border-radius: 999px 999px …`). It is the one signature element; I kept everything else quiet.
 - **The key card.** The room number is set very large on a brand-coloured arched card with the Stay ID, like a physical key card. It is the first thing a checked-in guest sees.
-- **Illustrations** are SVG scenes drawn in code from the brand variables (marina skyline, night skyline, sea with observation wheel and balcony rail, terrace with palm), one per room type, so a re-branded hotel gets matching art without images.
+- **Illustrations:** I drew SVG scenes in code from the brand variables (marina skyline, night skyline, sea with observation wheel and balcony rail, terrace with palm), one per room type, so a re-branded hotel gets matching art without images.
 - **Radii:** 14 px panels, 9 px inputs, pills for buttons and chips, arch for imagery.
 
 ## 7.5 White-label theming
@@ -100,7 +100,7 @@ flowchart LR
   J --> API["GET /api/hotel<br/>name, contacts, policies"] --> P
 ```
 
-Colours are injected **server-side** into the page head, so there is no flash of the default theme on load. Changing brand means editing one JSON block; see the [operator guide](14-user-guide.md#143-operator-guide).
+I inject the colours **server-side** into the page head, so there is no flash of the default theme on load. Changing the brand means editing one JSON block, as described in the [operator guide](14-user-guide.md#143-operator-guide).
 
 ## 7.6 Interaction patterns
 
@@ -116,6 +116,8 @@ Colours are injected **server-side** into the page head, so there is no flash of
 | Polling with no reload | Stay home, requests, bill | Live updates without user action |
 
 ## 7.7 Writing style
+
+The rules I followed for all interface text:
 
 - Sentence case everywhere, plain verbs: "Check availability", "Place order", "Pay and check out".
 - Buttons say what happens; the same action keeps the same name across the flow.

@@ -1,6 +1,6 @@
-# Render Blueprint: Dashboard > New > Blueprint > pick this repo.
+# Render Blueprint for the demo service (created through Render's New > Blueprint flow).
 # The free plan has no persistent disk, so the demo database re-seeds whenever the service
-# restarts. For data that survives restarts, switch to a paid plan and uncomment the disk.
+# restarts. The disk block below is for a paid plan, where data survives restarts.
 services:
   - type: web
     name: white-label-hms

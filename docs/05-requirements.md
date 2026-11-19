@@ -6,11 +6,11 @@
 
 The long-term product is a **white-label hotel management system (HMS)**: one cloud platform that hotel groups and resellers can rebrand. The full vision has 16 modules: property setup, reservations, front desk, housekeeping, maintenance, billing, night audit, rates and revenue, channel manager, booking engine, guest CRM, POS, sales and events, reports, platform administration, and integrations.
 
-This repository is the **MVP**, built in two days to show the end-to-end guest experience for **one hotel**, with no login, plus the technical foundations (data integrity, billing, white-label config) that the full product needs.
+This repository is my **MVP**, which I built in two days to show the end-to-end guest experience for **one hotel**, with no login, plus the technical foundations (data integrity, billing, white-label config) that the full product needs.
 
 ## 5.2 MVP scope
 
-| In scope | Out of scope (see [section 13](13-limitations-future-scope.md)) |
+| In scope | Out of scope (details in [section 13](13-limitations-future-scope.md)) |
 | --- | --- |
 | Public site: rooms, availability, booking, manage/cancel booking | Staff, front-desk, housekeeping and admin consoles |
 | Online check-in with ID details, Stay ID | Multiple properties and tenants |
@@ -31,6 +31,8 @@ This repository is the **MVP**, built in two days to show the end-to-end guest e
 | Reviewer (hiring manager) | Try the whole journey in 5 minutes | Laptop |
 
 ## 5.4 User stories and acceptance criteria
+
+I wrote these stories before building and used the acceptance criteria as my test cases.
 
 ### Booking
 

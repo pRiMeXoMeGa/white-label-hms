@@ -4,6 +4,8 @@
 
 ## 9.1 Targets for the MVP
 
+The targets I set for the MVP:
+
 | Metric | Target | Notes |
 | --- | --- | --- |
 | API latency | p95 < 200 ms for a single hotel | Local runs log 1–3 ms per request; SQLite queries are indexed |
@@ -35,6 +37,8 @@ Rough sizing: a 200-room hotel with every guest's app open generates about 200 �
 
 ## 9.4 Scaling path
 
+My plan as load grows:
+
 ```mermaid
 flowchart LR
   S1["Stage 1 (now)<br/>1 container<br/>SQLite file"] --> S2["Stage 2<br/>1 container + persistent disk<br/>backups, monitoring"]
@@ -52,8 +56,8 @@ flowchart LR
 | PDFs | Rendered once at check-out and stored in object storage |
 | Multi-tenancy | `tenant_id` and `property_id` on every row, row-level security, per-tenant config in the database instead of a file |
 
-## 9.5 How to measure
+## 9.5 Measurement
 
 - Request timings are already in the logs (`"ms": 2`).
-- A load test with k6 or autocannon against `/api/availability` and `/api/stays/:id/requests` would set the baseline before any infrastructure change.
-- Production would add metrics for p50/p95 latency per endpoint, scheduler lag (now − oldest due `next_transition_at`) and error rate.
+- Before any infrastructure change I plan a load test with k6 against `/api/availability` and `/api/stays/:id/requests` to set a baseline.
+- For production I plan metrics for p50/p95 latency per endpoint, scheduler lag (now − oldest due `next_transition_at`) and error rate.

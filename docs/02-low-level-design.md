@@ -2,6 +2,8 @@
 
 **Related:** [HLD](01-high-level-design.md), [Database](03-database-design.md), [API](06-api-specification.md)
 
+This document describes how I implemented the design: code structure, state machines, flows and the rules inside each module.
+
 ## 2.1 Code structure
 
 ```
@@ -40,11 +42,11 @@ src/
     pages/stay/                   in-stay app pages
 ```
 
-**Layering rule:** `http` → `modules` → `db`/`lib`. Modules never import from `http`; the client only imports types from `shared`.
+**Layering rule I follow:** `http` → `modules` → `db`/`lib`. Modules never import from `http`; the client only imports types from `shared`.
 
 ## 2.2 Dependency injection: `AppContext`
 
-Every module function takes an `AppContext` as its first argument instead of importing globals:
+I pass an `AppContext` as the first argument of every module function instead of importing globals:
 
 ```ts
 interface AppContext {
@@ -55,7 +57,7 @@ interface AppContext {
 }
 ```
 
-This is what lets the tests run each scenario against a fresh in-memory database and move time forward deterministically (`clock.advanceSeconds(61)`), with no mocking library.
+This lets my tests run each scenario against a fresh in-memory database and move time forward deterministically (`clock.advanceSeconds(61)`), with no mocking library.
 
 ## 2.3 State machines
 
@@ -80,7 +82,7 @@ stateDiagram-v2
 
 ### Service request workflows
 
-Each service is a linear state machine defined in `requests/workflows.ts`. `advance` says how a request leaves a stage.
+I modelled each service as a linear state machine in `requests/workflows.ts`. `advance` says how a request leaves a stage.
 
 | Service | Stages (→ advance rule) | Charged | Cancel allowed |
 | --- | --- | --- | --- |
@@ -304,7 +306,7 @@ Demo configuration (Dubai-style): service charge 10% on everything, municipality
 | Spa / transfer times | Hotel-local wall clock `YYYY-MM-DDTHH:mm` | `2026-11-20T16:00` |
 | System timestamps | UTC ISO 8601 | `2026-11-19T01:41:01.722Z` |
 
-`hotelLocalToUtc()` converts wall-clock times to instants with a two-pass offset correction, so it also works for zones with daylight saving (Dubai has none, but a re-branded hotel might).
+`hotelLocalToUtc()` converts wall-clock times to instants with a two-pass offset correction. I wrote it this way so it also works for zones with daylight saving (Dubai has none, but a re-branded hotel might).
 
 ## 2.9 Identifiers
 
@@ -314,7 +316,7 @@ Demo configuration (Dubai-style): service charge 10% on everything, municipality
 | Stay ID | `XXXX-XXXX-XXXX` | 31¹² ≈ 7.9 × 10¹⁷ (~59 bits) | Bearer key to the in-stay app; issued at check-in |
 | Invoice number | `SB-INV-YYYY-NNNNN` | sequential | Allocated inside the check-out transaction |
 
-The alphabet `ABCDEFGHJKMNPQRSTUVWXYZ23456789` drops look-alike characters (0/O, 1/I/L) so codes can be read over the phone. Codes come from `crypto.randomInt`, and inserts retry on the rare unique-key collision.
+I dropped look-alike characters (0/O, 1/I/L) from the alphabet `ABCDEFGHJKMNPQRSTUVWXYZ23456789` so codes can be read over the phone. Codes come from `crypto.randomInt`, and inserts retry on the rare unique-key collision.
 
 ## 2.10 Frontend design
 

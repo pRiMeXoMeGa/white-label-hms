@@ -2,7 +2,7 @@
 
 **Related:** [LLD 2.7](02-low-level-design.md#27-http-layer-validation-errors-limits), [Decision ADR-03](11-decision-records.md#adr-03-no-login-booking-reference-and-stay-id)
 
-This is a demo, but it is built the way a production guest app should be. This document lists what protects what, and what would still be needed for production.
+This is a demo, but I built it the way I build a production guest app. This document lists what protects what, and what I still plan to add before production.
 
 ## 8.1 Assets and threats
 
@@ -51,15 +51,15 @@ flowchart LR
 **Privacy notes (UAE PDPL / GDPR-style principles)**
 - *Data minimisation:* only what a hotel needs to register a guest; card and ID numbers are truncated on arrival.
 - *Purpose limitation:* data is used only to run the stay; there is no marketing or tracking, no third-party scripts, no cookies (local storage only keeps the Stay ID on the guest's own device).
-- *Retention:* the demo database resets on restart. Production would add a retention job (e.g. anonymise guest details N months after check-out, keep invoices for the legally required period).
-- *Rights:* production would add export and erasure for guest details while keeping tax records.
+- *Retention:* the demo database resets on restart. For production I plan a retention job that anonymises guest details a set number of months after check-out and keeps invoices for the legally required period.
+- *Rights:* for production I plan export and erasure of guest details, while keeping tax records.
 
 Guest registration rules (for example, UAE hotels reporting guests to the authorities) need the full document and are handled at the front desk in this design; the app explains that the original document is checked when the key is collected.
 
 ## 8.4 Payments
 
 - The MVP **does not take money**. Cards are format-checked (Luhn, `MM/YY`) and then reduced to brand + last 4.
-- Production design: card fields served by the payment provider (hosted fields or a payment page), the server receives a token, and charges use 3-D Secure. This keeps the app in the lightest PCI DSS scope (SAQ A), because card numbers never touch our servers.
+- My production design: card fields served by the payment provider (hosted fields or a payment page), the server receives a token, and charges use 3-D Secure. This keeps the app in the lightest PCI DSS scope (SAQ A), because card numbers never touch the app's servers.
 
 ## 8.5 Application security controls
 
@@ -77,11 +77,11 @@ Guest registration rules (for example, UAE hotels reporting guests to the author
 | Error handling | Known errors return a code and message; unknown errors return a generic 500 and are logged with the stack server-side |
 | Concurrency | Write transactions (`BEGIN IMMEDIATE`) and compare-and-set updates prevent race conditions on rooms, spa slots, status changes and check-out |
 | Container | Runs as non-root `node` user; only `/data` is writable; no build tools or dev dependencies at runtime |
-| Secrets | None are needed in the MVP; production secrets (payment keys) belong in the host's secret store, never in the repo |
+| Secrets | None are needed in the MVP; production secrets (payment keys) will live in the host's secret store, never in the repo |
 
 ## 8.6 Known gaps before production
 
-| Gap | Risk | Fix |
+| Gap | Risk | My planned fix |
 | --- | --- | --- |
 | No staff authentication (no staff UI yet) | — | SSO/OIDC with roles when the staff console is added |
 | Stay ID in the URL | Visible in browser history and in screenshots | Exchange it for an HttpOnly session cookie after first open; rotate on check-out |

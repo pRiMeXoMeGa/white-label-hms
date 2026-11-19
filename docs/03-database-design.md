@@ -1,5 +1,7 @@
 # 3. Database design and schema
 
+This document describes the database I designed for the MVP.
+
 **Engine:** SQLite 3 through Node's built-in `node:sqlite`, WAL journal, foreign keys on, 5 s busy timeout.
 **Source of truth:** [`src/server/db/migrations.ts`](../src/server/db/migrations.ts)
 **Related:** [LLD](02-low-level-design.md), [Decision ADR-01](11-decision-records.md#adr-01-sqlite-for-the-mvp-postgres-later)
@@ -212,7 +214,7 @@ Triggers `folio_entries_no_update` and `folio_entries_no_delete` abort any `UPDA
 | notes | TEXT | nullable | Guest notes |
 | total_minor | INTEGER | default 0 | Sum of charges posted |
 | scheduled_at, scheduled_end_at | TEXT | hotel-local `YYYY-MM-DDTHH:mm`, nullable | Spa slot or transfer pickup and arrival |
-| next_transition_at | TEXT | UTC, NULL when terminal | When the scheduler should move it |
+| next_transition_at | TEXT | UTC, NULL when terminal | When the scheduler moves it next |
 | created_at, updated_at, cancelled_at | TEXT | UTC | |
 
 Indexes: `service_requests_reservation (reservation_id)`; partial `service_requests_due (next_transition_at) WHERE next_transition_at IS NOT NULL`.
@@ -249,12 +251,12 @@ A 90-minute treatment holds three rows in one treatment room. Rows are deleted w
 
 ## 3.4 Preventing double booking
 
-Two layers:
+I prevent double booking with two layers:
 
 1. **Serialised writes.** Booking runs inside `BEGIN IMMEDIATE`, which takes SQLite's write lock before reading. Two concurrent bookings queue; the second one sees the first one's `room_nights` rows and picks another room or gets `409 sold_out`.
 2. **Constraint as safety net.** Even if application logic had a bug, inserting a second row for the same `(room_id, night)` fails with a unique-constraint error and the whole transaction rolls back. A test inserts a duplicate directly to prove it.
 
-The equivalent on PostgreSQL (planned for multi-instance deployments) is an exclusion constraint:
+For multi-instance deployments I plan to move to PostgreSQL, where the equivalent is an exclusion constraint:
 
 ```sql
 ALTER TABLE stays ADD CONSTRAINT no_overlap
@@ -262,7 +264,7 @@ ALTER TABLE stays ADD CONSTRAINT no_overlap
   WHERE (status IN ('confirmed', 'checked_in'));
 ```
 
-## 3.5 Why an append-only ledger
+## 3.5 Why I chose an append-only ledger
 
 - Every amount on the bill can be traced to an event (`source_type`, `source_id`, `created_at`).
 - Cancelling an order or leaving early adds a negative line instead of changing history, which is how hotel folios and accounting systems work.
@@ -271,9 +273,9 @@ ALTER TABLE stays ADD CONSTRAINT no_overlap
 
 ## 3.6 Migrations and seeding
 
-- `migrate()` runs at start-up. Each migration has a version number, runs once inside a transaction, and is recorded in `schema_migrations`. Migrations are forward-only; changes ship as new numbered migrations.
+- `migrate()` runs at start-up. Each migration has a version number, runs once inside a transaction, and is recorded in `schema_migrations`. I keep migrations forward-only; every change ships as a new numbered migration.
 - `seedIfEmpty()` loads room types, rooms, the catalogue and spa treatments from `hotel.json` only when `room_types` is empty, so restarts never duplicate data.
-- `npm run seed:reset` or `RESET_DB_ON_START=true` deletes the file (and its WAL/SHM side files) and re-seeds: used for demos.
+- `npm run seed:reset` or `RESET_DB_ON_START=true` deletes the file (and its WAL/SHM side files) and re-seeds; I use this for demos.
 
 ## 3.7 Typical queries and their indexes
 
@@ -289,14 +291,16 @@ ALTER TABLE stays ADD CONSTRAINT no_overlap
 
 ## 3.8 Path to PostgreSQL and multi-tenancy
 
+The changes I plan for the multi-tenant version:
+
 | Change | Detail |
 | --- | --- |
-| Tenancy | Add `tenant_id` (partner) and `property_id` to every table; composite keys and indexes lead with them |
+| Tenancy | `tenant_id` (partner) and `property_id` on every table; composite keys and indexes lead with them |
 | Isolation | Postgres row-level security policies on `tenant_id`, set per request (`SET app.tenant_id`) |
 | Double booking | Exclusion constraint on `daterange` (above) instead of per-night rows, or keep `room_nights` with the tenant in the key |
 | Ledger | Same append-only design; revoke `UPDATE`/`DELETE` from the app role instead of triggers |
 | Scheduler | `SELECT … FOR UPDATE SKIP LOCKED` so several workers can share the queue |
 | Types | `numeric`/`bigint` money, `date`, `timestamptz`, `jsonb` for details and payloads |
-| Migrations | Same numbered approach with a migration tool (e.g. node-pg-migrate) |
+| Migrations | Same numbered approach with a migration tool (node-pg-migrate) |
 
-The module code talks to the database only through the `Db` wrapper's `run/get/all/tx`, which keeps this switch contained.
+I kept all database access behind the `Db` wrapper's `run/get/all/tx`, which keeps this switch contained.

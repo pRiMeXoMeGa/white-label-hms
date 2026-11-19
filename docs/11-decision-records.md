@@ -1,6 +1,6 @@
 # 11. Architecture decision records (ADRs)
 
-Each record states the context, the decision, the alternatives considered and the consequences. Status for all: **Accepted** for the MVP (19 November 2026).
+These are the key decisions I made for the MVP. Each record states the context, my decision, the alternatives I considered and the consequences. Status for all: **Accepted** (19 November 2026).
 
 | # | Decision |
 | --- | --- |
@@ -21,34 +21,34 @@ Each record states the context, the decision, the alternatives considered and th
 
 **Context.** Two days to build and deploy; a free host; one hotel. The data model still needs real constraints and transactions (no double booking, append-only bills).
 
-**Decision.** Use SQLite through Node's built-in `node:sqlite`, in WAL mode, with constraints and triggers doing the integrity work.
+**Decision.** I use SQLite through Node's built-in `node:sqlite`, in WAL mode, with constraints and triggers doing the integrity work.
 
 **Alternatives.** Hosted Postgres (extra service, connection setup, free tiers expire); an ORM over Postgres (more setup, less visible SQL); in-memory data (no constraints, not a real backend).
 
 **Consequences.**
 - No database server to provision; one file; tests use the same engine in memory.
 - Single writer and single instance; data is lost on the free host when it restarts.
-- Database access is isolated behind a small `Db` wrapper, so moving to Postgres changes one layer. The Postgres design is in [Database 3.8](03-database-design.md#38-path-to-postgresql-and-multi-tenancy).
+- I isolated database access behind a small `Db` wrapper, so moving to Postgres changes one layer. My Postgres design is in [Database 3.8](03-database-design.md#38-path-to-postgresql-and-multi-tenancy).
 
 ## ADR-02: One deployable
 
 **Context.** A reviewer needs one link. Separate frontend and backend deployments mean CORS, two URLs and two builds.
 
-**Decision.** One Node process serves the built React app, the JSON API and runs the scheduler, in one Docker image.
+**Decision.** I run one Node process that serves the built React app and the JSON API and runs the scheduler, in one Docker image.
 
-**Alternatives.** Static site + API service; Next.js; serverless functions (would not suit a long-running scheduler).
+**Alternatives.** Static site + API service; Next.js; serverless functions (they do not suit a long-running scheduler).
 
-**Consequences.** Simple deploy and same-origin requests (strict CSP possible). Scaling the API means scaling the scheduler with it, which is fixed by splitting the worker out later ([Performance 9.4](09-performance-scalability.md#94-scaling-path)).
+**Consequences.** Simple deploy and same-origin requests (strict CSP possible). Scaling the API means scaling the scheduler with it; I plan to split the worker out when that matters ([Performance 9.4](09-performance-scalability.md#94-scaling-path)).
 
 ## ADR-03: No login: booking reference and Stay ID
 
-**Context.** The brief asked for no login. Guests should not create accounts for a hotel stay, but their bill must not be open to anyone.
+**Context.** The brief asked for no login. Guests don't want to create an account for a hotel stay, but their bill must not be open to anyone.
 
-**Decision.** Booking actions need the booking reference **and** last name. Check-in issues a random Stay ID (~59 bits) that is the key to the in-stay app. Failed lookups are rate-limited per IP; Stay IDs can only change things while the stay is checked in.
+**Decision.** I made booking actions need the booking reference **and** last name. Check-in issues a random Stay ID (~59 bits) that is the key to the in-stay app. Failed lookups are rate-limited per IP; Stay IDs can only change things while the stay is checked in.
 
 **Alternatives.** Email magic links (needs email delivery); passwords (friction, password storage); QR room codes only (anyone in the room could use them).
 
-**Consequences.** Zero friction and no password storage. The Stay ID is a bearer token in the URL; production would swap it for an HttpOnly cookie after first use ([Security 8.6](08-security-privacy.md#86-known-gaps-before-production)).
+**Consequences.** Zero friction and no password storage. The Stay ID is a bearer token in the URL; for production I plan to swap it for an HttpOnly cookie after first use ([Security 8.6](08-security-privacy.md#86-known-gaps-before-production)).
 
 ## ADR-04: Polling instead of push
 
@@ -58,13 +58,13 @@ Each record states the context, the decision, the alternatives considered and th
 
 **Alternatives.** WebSockets or Server-Sent Events (connection management, proxy timeouts on the free host, more code).
 
-**Consequences.** Simple and robust; a little wasted traffic. Fine for one hotel; replace with SSE when traffic grows.
+**Consequences.** Simple and robust, with a little wasted traffic. Fine for one hotel; I plan to move to Server-Sent Events when traffic grows.
 
 ## ADR-05: Append-only folio and frozen invoice
 
 **Context.** Bills must be explainable, and corrections (cancellations, early departure) must not erase history.
 
-**Decision.** Every money movement is a new `folio_entries` row; database triggers block updates and deletes. At check-out the full bill is stored as a JSON snapshot in `invoices`, and closed stays are read from it.
+**Decision.** I record every money movement as a new `folio_entries` row; database triggers block updates and deletes. At check-out the full bill is stored as a JSON snapshot in `invoices`, and closed stays are read from it.
 
 **Alternatives.** Mutable order totals; recomputing invoices on demand.
 
@@ -74,46 +74,46 @@ Each record states the context, the decision, the alternatives considered and th
 
 **Context.** Two days were not enough for a staff UI, but requests must move through realistic statuses in a demo.
 
-**Decision.** Each service is a state machine; a scheduler checks every 2 seconds and moves due requests after `AUTO_ADVANCE_SECONDS` (10 s by default; per-service overrides in env). Spa and transfers complete when their booked time has passed.
+**Decision.** I modelled each service as a state machine; a scheduler checks every 2 seconds and moves due requests after `AUTO_ADVANCE_SECONDS` (10 s by default; per-service overrides in env). Spa and transfers complete when their booked time has passed.
 
 **Alternatives.** A minimal staff page with a passcode; statuses computed on read from timestamps.
 
-**Consequences.** A self-running demo with configurable speed. The same state machines and `service_request_events` table will back the staff console later; staff actions will simply replace the timer for each transition.
+**Consequences.** A self-running demo with configurable speed. The same state machines and `service_request_events` table will back my staff console; staff actions will replace the timer for each transition.
 
 ## ADR-07: Minimal frontend dependencies
 
 **Context.** Fast load on phones; a small codebase a reviewer can read.
 
-**Decision.** React only. A 60-line router, a small `useApi` hook and hand-written CSS with variables. esbuild for bundling.
+**Decision.** I use React only, with a 60-line router, a small `useApi` hook and hand-written CSS with variables, bundled by esbuild.
 
 **Alternatives.** React Router, TanStack Query, Tailwind, a component library.
 
-**Consequences.** ~270 KB raw JS, no CSS framework, everything visible in the repo. More hand-written code for routing and data fetching; worth switching to libraries when the staff console adds many screens.
+**Consequences.** ~270 KB raw JS, no CSS framework, everything visible in the repo. More hand-written code for routing and data fetching; I plan to adopt libraries when the staff console adds many screens.
 
 ## ADR-08: White-label through one validated config file
 
 **Context.** The product is white-label; the MVP is one hotel.
 
-**Decision.** All property data (brand, colours, policies, taxes, rooms, menus, spa, transfers, Wi-Fi, guide) lives in `config/hotel.json`, validated with Zod at start-up. The server injects colours into the page; illustrations are drawn from those colours.
+**Decision.** I put all property data (brand, colours, policies, taxes, rooms, menus, spa, transfers, Wi-Fi, guide) in `config/hotel.json`, validated with Zod at start-up. The server injects colours into the page; illustrations are drawn from those colours.
 
 **Alternatives.** Hard-coded demo content; a database-backed admin from day one.
 
-**Consequences.** A new hotel is a new JSON file and an env var. Multi-tenant production moves this config into the database per tenant with an admin UI.
+**Consequences.** A new hotel is a new JSON file and an env var. For the multi-tenant version I plan to move this config into the database per tenant, with an admin UI.
 
 ## ADR-09: Assign a specific room at booking time
 
 **Context.** Hotels often sell room types and assign rooms later, but that needs a nightly allocation process.
 
-**Decision.** Assign the room at booking and store one `room_nights` row per night. Clean rooms are preferred.
+**Decision.** I assign the room at booking and store one `room_nights` row per night, preferring clean rooms.
 
 **Alternatives.** Type-level inventory counts with assignment at check-in.
 
-**Consequences.** Exact per-night inventory and a database-level guarantee against double booking. Room moves and upgrades become an update of those rows, to be added with the staff console.
+**Consequences.** Exact per-night inventory and a database-level guarantee against double booking. Room moves and upgrades become an update of those rows, which I plan to add with the staff console.
 
 ## ADR-10: Money as integer minor units
 
 **Context.** Floating-point amounts produce rounding errors in bills and taxes.
 
-**Decision.** Store and compute all amounts in fils (integers). Round each tax once on its total, half away from zero.
+**Decision.** I store and compute all amounts in fils (integers) and round each tax once on its total, half away from zero.
 
 **Consequences.** Totals always add up to the fil on screen, in the PDF and in the database. Formatting to `AED 1,234.56` happens only at the edges.

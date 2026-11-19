@@ -4,7 +4,9 @@
 
 ## 13.1 Current limitations
 
-| # | Limitation | Impact | Acceptable for the demo because… | Fixed in |
+The limitations I accepted for the two-day MVP:
+
+| # | Limitation | Impact | Why I accepted it for the demo | Fixed in |
 | --- | --- | --- | --- | --- |
 | L1 | **One hotel only**; no tenants or properties in the data model | Can't run a group or a reseller yet | Shows the full guest journey; white-label is proven by the config file | Phase 3 |
 | L2 | **No staff or admin console**; statuses move on a timer | Nobody actually fulfils requests; no front desk, housekeeping board or kitchen queue | The timer shows the full status lifecycle; durations are configurable | Phase 2 |
@@ -17,13 +19,15 @@
 | L9 | **Stay ID in the URL** as a bearer key | Visible in history and screenshots | 59-bit random, rate-limited, only valid while checked in | Phase 2 |
 | L10 | **Room assigned at booking**; no room moves, upgrades or out-of-order management UI | Front desk can't reorganise rooms | Guarantees exact inventory per night | Phase 2 |
 | L11 | **Single rate per room type** + weekend uplift; no rate plans, promotions or restrictions | No revenue management | Pricing engine is isolated in `priceStay()` | Phase 4 |
-| L12 | **No channel manager** or OTA sync | Only direct bookings | Inventory model (`room_nights`) is what an OTA sync would update | Phase 4 |
+| L12 | **No channel manager** or OTA sync | Only direct bookings | The inventory model (`room_nights`) is what an OTA sync updates | Phase 4 |
 | L13 | **No night audit or accounting export** | Revenue must be read from invoices | Append-only ledger is the right base for it | Phase 3 |
 | L14 | **No guest profiles or history** | Returning guests start fresh | No login by design | Phase 3 |
 | L15 | **Free cancellation always**; no deposit or no-show rules | No protection against no-shows | Policies are config-ready | Phase 2 |
 | L16 | **Government guest reporting** (e.g. local police/tourism registers) not automated | Front desk must register guests from the ID | Only the last 4 ID characters are stored on purpose | Phase 3 |
 
 ## 13.2 Future scope by phase
+
+My roadmap after the MVP:
 
 ```mermaid
 timeline
@@ -65,9 +69,11 @@ timeline
 | POS and loyalty | Outlet POS posting to the folio; points and member rates | L |
 | Mobile and devices | Branded native apps, digital room keys, door-lock vendors (ASSA ABLOY, dormakaba, Salto) | L |
 
-Effort: S ≈ days, M ≈ 1–3 weeks, L ≈ 1–2 months for a small team.
+Effort estimates: S ≈ days, M ≈ 1–3 weeks, L ≈ 1–2 months for a small team.
 
 ## 13.3 What the MVP already gives these phases
+
+Foundations I built now so these phases reuse them:
 
 | Foundation in the MVP | Used by |
 | --- | --- |

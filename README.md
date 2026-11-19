@@ -1,6 +1,6 @@
 # White-label Hotel Guest Platform
 
-A single web app that covers a hotel guest's whole stay without a login: **book a room → check in online → order services to the room → see a live bill → check out and download the invoice**. It ships with a demo hotel, *Saffron Bay Hotel & Spa* in Dubai, and every brand detail, price, tax and service comes from one config file, so it can be re-branded for another property.
+I built a single web app that covers a hotel guest's whole stay without a login: **book a room → check in online → order services to the room → see a live bill → check out and download the invoice**. It ships with a fictional demo hotel, *Saffron Bay Hotel & Spa* in Dubai, and every brand detail, price, tax and service comes from one config file, so it can be re-branded for another property.
 
 **Live demo:** https://white-label-hms.onrender.com (test card `4242 4242 4242 4242`, expiry `12/29`)
 
@@ -8,7 +8,7 @@ Works on any screen from a 320 px phone to a desktop; the in-stay app is designe
 
 ## Documentation
 
-Full design and project documentation is in [`docs/`](docs/README.md):
+My design and project documentation is in [`docs/`](docs/README.md):
 
 | # | Document | # | Document |
 | --- | --- | --- | --- |
@@ -20,7 +20,6 @@ Full design and project documentation is in [`docs/`](docs/README.md):
 | 6 | [API specification](docs/06-api-specification.md) | 13 | [Limitations and future scope](docs/13-limitations-future-scope.md) |
 | 7 | [UI/UX design](docs/07-ui-ux-design.md) | 14 | [User guide and demo script](docs/14-user-guide.md) |
 
-New here? Start with the [5-minute demo script](docs/14-user-guide.md#142-five-minute-demo-script), then the [HLD](docs/01-high-level-design.md) and the [decision records](docs/11-decision-records.md).
 
 ## The guest journey
 
@@ -39,9 +38,9 @@ Other pages: **Manage booking** (`/manage`) to look up or cancel a booking or re
 
 Test card: `4242 4242 4242 4242`, any future expiry, any CVC. No real payment is taken.
 
-## Run it
+## Running it
 
-Requires Node.js 22.13 or newer (it uses the built-in `node:sqlite`).
+The app needs Node.js 22.13 or newer (it uses the built-in `node:sqlite`). I run it locally with:
 
 ```bash
 npm install
@@ -49,15 +48,13 @@ npm run build
 npm start            # http://localhost:3000
 ```
 
-For development with auto-rebuild and server restart: `npm run dev`.
-
-Reset the demo database: `npm run seed:reset`, or start with `RESET_DB_ON_START=true`.
+`npm run dev` rebuilds the client and restarts the server on every change. `npm run seed:reset`, or starting with `RESET_DB_ON_START=true`, resets the demo database.
 
 ## Configuration
 
 ### Auto-progress timers (env)
 
-There is no staff panel in this version. A scheduler plays the hotel team and moves each request to its next status after a delay you set in the environment:
+This version has no staff panel. A scheduler plays the hotel team and moves each request to its next status after a delay set in the environment:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -73,7 +70,7 @@ Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_
 
 ### White-label config
 
-[`config/hotel.json`](config/hotel.json) holds everything that is specific to a property: brand name and colours, contact details, check-in and check-out times, weekend pricing, the tax rules, Wi-Fi, opening hours, house rules, the local guide, room types and room numbers, the dining menu, laundry price list, amenities, housekeeping options, maintenance categories, spa treatments and opening hours, and transfer airports and car prices. It is validated with Zod at start-up, so a typo fails fast with a clear message. Point `HOTEL_CONFIG_PATH` at another file to run a different hotel; the brand colours are injected into the page server-side, and the illustrations are drawn in code from those colours. See the [operator guide](docs/14-user-guide.md#143-operator-guide).
+[`config/hotel.json`](config/hotel.json) holds everything that is specific to a property: brand name and colours, contact details, check-in and check-out times, weekend pricing, the tax rules, Wi-Fi, opening hours, house rules, the local guide, room types and room numbers, the dining menu, laundry price list, amenities, housekeeping options, maintenance categories, spa treatments and opening hours, and transfer airports and car prices. It is validated with Zod at start-up, so a typo fails fast with a clear message. `HOTEL_CONFIG_PATH` pointing at another file runs a different hotel; the brand colours are injected into the page server-side, and the illustrations are drawn in code from those colours. The [operator guide](docs/14-user-guide.md#143-operator-guide) describes every section.
 
 ## Architecture
 
@@ -103,9 +100,9 @@ flowchart LR
 - **Frontend.** React 19 + TypeScript, bundled with esbuild. A small history router and hand-written CSS keep dependencies to React only. The in-stay app polls for live status every few seconds.
 - **Backend.** TypeScript on Node's built-in `http` and `node:sqlite`; Zod validates every request body. Modules receive an `AppContext` (database, config, hotel, clock), so tests run against an in-memory database and a fake clock.
 
-### Design decisions worth knowing
+### Key design decisions
 
-The reasoning and alternatives for each are in the [decision records](docs/11-decision-records.md).
+My reasoning and the alternatives I considered are in the [decision records](docs/11-decision-records.md).
 
 | Concern | Decision |
 | --- | --- |
@@ -187,9 +184,9 @@ CI (GitHub Actions) runs typecheck, tests, build, the browser journey and the re
 
 The [`Dockerfile`](Dockerfile) runs the tests, builds, and ships a small image with only the bundle and the hotel config, with no `node_modules` at runtime.
 
-**Render (free):** Dashboard → New → Blueprint → select this repository. [`render.yaml`](render.yaml) sets up the web service, health check and timer variables. On the free plan the SQLite file is wiped when the service restarts, so the demo data resets; attach a disk on a paid plan to keep it.
+**Render (free):** I deploy through the Render Blueprint in [`render.yaml`](render.yaml), which sets up the web service, health check and timer variables; every push to `main` redeploys. On the free plan the SQLite file is wiped when the service restarts, so the demo data resets; a paid plan with a disk keeps it.
 
-Any Docker host works the same way (Railway, Fly.io, a VM): build the image, set the env variables, and mount a volume at `/data` to keep the database. Environments, CI/CD, backup and rollback are in [Deployment and DevOps](docs/04-deployment-devops.md); everyday tasks and troubleshooting are in the [runbook](docs/12-runbook.md).
+The same image runs on any Docker host (Railway, Fly.io, a VM) with the env variables set and a volume at `/data` for the database. Environments, CI/CD, backup and rollback are in [Deployment and DevOps](docs/04-deployment-devops.md); everyday tasks and troubleshooting are in the [runbook](docs/12-runbook.md).
 
 ## Project layout
 
@@ -218,7 +215,7 @@ Dockerfile, render.yaml    container image and Render Blueprint
 
 ## Not in this version
 
-These were scoped out of the two-day MVP. The full list of limitations, their impact and the phased roadmap are in [Limitations and future scope](docs/13-limitations-future-scope.md).
+I scoped these out of the two-day MVP; they are the next phases of my roadmap. The full list of limitations, their impact and the phases are in [Limitations and future scope](docs/13-limitations-future-scope.md).
 
 - Staff and admin console (front desk, housekeeping board, kitchen queue) replacing the auto-progress timer
 - Multi-property and multi-tenant white-label (tenant id on every table, per-tenant domains and theming)

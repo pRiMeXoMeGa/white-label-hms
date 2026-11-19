@@ -4,6 +4,8 @@
 
 ## 10.1 Strategy
 
+I test at four levels:
+
 ```mermaid
 flowchart TB
   E2E["Browser journey (Playwright)<br/>1 scenario, whole guest stay, real Chromium"] --> INT
@@ -17,10 +19,10 @@ flowchart TB
 | Integration | `node:test` + in-memory SQLite + `FixedClock` | Business rules end to end through the modules and the real schema, constraints and triggers | `npm test`, CI, Docker build |
 | End to end | Playwright (`tests/e2e/journey.mjs`) | The built app works in a browser: every screen, no console errors, PDF downloads | `npm run e2e`, CI |
 | Responsive | Playwright (`tests/e2e/responsive.mjs`) | 12 pages × 8 screen sizes (320 px to 1920 px): no sideways scrolling, no controls under 32 px tall | `npm run e2e:responsive`, CI |
-| Live smoke test | Claude in Chrome against the deployed site | Production build and hosting behave like local | Manual, after deploys |
+| Live smoke test | Manual walkthrough in Chrome against the deployed site | Production build and hosting behave like local | After deploys |
 | Type checking | `tsc --noEmit` (strict) | API types shared by client and server stay in sync | `npm run typecheck`, CI |
 
-**Why integration tests carry the weight:** most rules worth testing (no double booking, append-only ledger, slot capacity) live partly in the database. Running against a real in-memory SQLite with the real migrations tests the constraints themselves, not a mock. The injected clock makes time-based rules (check-in windows, timers, slot lead times) deterministic and instant.
+**Why integration tests carry the weight:** most rules worth testing (no double booking, append-only ledger, slot capacity) live partly in the database. I run them against a real in-memory SQLite with the real migrations, so they test the constraints themselves, not a mock. The injected clock makes time-based rules (check-in windows, timers, slot lead times) deterministic and instant.
 
 ## 10.2 Test catalogue
 
@@ -81,7 +83,7 @@ The run fails on any browser console error. Screenshots are saved to `test-resul
 | Early check-out: night and future spa released; total AED 1,390.48; room back on sale | Pass |
 | PDF invoice (`%PDF-`, `application/pdf`), feedback, no console errors | Pass |
 
-**Defects found and fixed during live testing**
+**Defects I found and fixed during live testing**
 
 | Defect | Fix |
 | --- | --- |
@@ -89,11 +91,11 @@ The run fails on any browser console error. Screenshots are saved to `test-resul
 | Check-out said "Card used to book" without saying which card | Shows "Visa ending 4242" |
 | Early check-out kept an airport transfer booked for a later day | Later-day transfers are cancelled and refunded; same-day kept (test 15) |
 
-## 10.4 Gaps and next tests
+## 10.4 Tests I plan to add
 
 - Front-end component tests (React Testing Library) for the cart, slot grid and forms.
 - API contract tests generated from the shared types (or an OpenAPI file).
-- Concurrency test: two bookings racing for the last room from separate processes.
+- A concurrency test with two bookings racing for the last room from separate processes.
 - Load test (k6) for availability and polling endpoints.
 - Accessibility checks (axe) in the browser journey.
 - Visual regression on the key screens.

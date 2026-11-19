@@ -1,11 +1,11 @@
 # 1. High-level design (HLD)
 
-**Status:** reflects the MVP in this repository (single hotel, guest-facing, no staff console).
+**Status:** describes the MVP I built in this repository (single hotel, guest-facing, no staff console).
 **Related:** [LLD](02-low-level-design.md), [Database](03-database-design.md), [Deployment](04-deployment-devops.md), [Decisions](11-decision-records.md)
 
 ## 1.1 Purpose and scope
 
-The system lets a hotel guest run their whole stay from a browser, with no app install and no account:
+I built a system that lets a hotel guest run their whole stay from a browser, with no app install and no account:
 
 1. book a room
 2. check in online
@@ -13,9 +13,9 @@ The system lets a hotel guest run their whole stay from a browser, with no app i
 4. follow each request's status and a live bill
 5. check out, pay and download a tax invoice
 
-It is **white-label**: the brand, policies, prices, taxes and service catalogue of the property come from one configuration file, so the same code can run a different hotel.
+I made it **white-label**: the brand, policies, prices, taxes and service catalogue of the property come from one configuration file, so the same code can run a different hotel.
 
-**Out of scope for the MVP** (see [Limitations and future scope](13-limitations-future-scope.md)): staff and admin console, multiple properties, real payment gateway, notifications, channel manager.
+**I left out of the MVP** (details in [Limitations and future scope](13-limitations-future-scope.md)): staff and admin console, multiple properties, real payment gateway, notifications, channel manager.
 
 ## 1.2 System context
 
@@ -37,11 +37,11 @@ flowchart LR
   Render -->|"runs container"| App
 ```
 
-There are no outbound integrations in the MVP. Payment, email/SMS, door locks and OTAs are listed as future integrations in [section 13](13-limitations-future-scope.md).
+The MVP has no outbound integrations. Payment, email/SMS, door locks and OTAs are on my roadmap in [section 13](13-limitations-future-scope.md).
 
 ## 1.3 Containers and components
 
-Everything runs in **one process in one container**: the static web client, the JSON API, the background scheduler and the database file.
+I run everything in **one process in one container**: the static web client, the JSON API, the background scheduler and the database file.
 
 ```mermaid
 flowchart TB
@@ -100,7 +100,9 @@ Detailed sequence diagrams are in the [LLD](02-low-level-design.md#24-sequence-d
 
 ## 1.5 Technology choices
 
-| Area | Choice | Why (short) | Record |
+The reasoning behind each choice is in my [decision records](11-decision-records.md).
+
+| Area | My choice | Why (short) | Record |
 | --- | --- | --- | --- |
 | Runtime | Node.js 22 + TypeScript | One language front to back; shared API types | — |
 | Database | SQLite (`node:sqlite`) | Zero setup, real SQL constraints and transactions, one file to deploy | [ADR-01](11-decision-records.md#adr-01-sqlite-for-the-mvp-postgres-later) |
@@ -134,11 +136,11 @@ flowchart LR
   Svc --- Disk[("SQLite file<br/>ephemeral on free plan")]
 ```
 
-Details, environments and rollback are in [Deployment and DevOps](04-deployment-devops.md).
+Environments, CI/CD and rollback are described in [Deployment and DevOps](04-deployment-devops.md).
 
 ## 1.8 Evolution to the full white-label HMS
 
-The MVP is deliberately one hotel and one process. The path to the multi-tenant platform described in the PRD:
+I deliberately kept the MVP to one hotel and one process. My path from here to the multi-tenant platform:
 
 ```mermaid
 flowchart LR
@@ -147,4 +149,4 @@ flowchart LR
   C --> D["Phase 4<br/>channel manager, revenue mgmt,<br/>POS, loyalty, mobile apps"]
 ```
 
-What changes architecturally at each step is detailed in [Limitations and future scope](13-limitations-future-scope.md) and [Performance and scaling](09-performance-scalability.md).
+The architectural changes at each step are described in [Limitations and future scope](13-limitations-future-scope.md) and [Performance and scaling](09-performance-scalability.md).

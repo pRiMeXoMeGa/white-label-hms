@@ -1,6 +1,8 @@
 # 6. API specification
 
 **Base URL:** `https://white-label-hms.onrender.com/api` (or `http://localhost:3000/api`)
+This is the API I built for the web client.
+
 **Format:** JSON request and response bodies (`Content-Type: application/json`), UTF-8. Money is in **minor units** (fils): `65000` = AED 650.00.
 **Types:** every response type is defined in [`src/shared/types.ts`](../src/shared/types.ts); request validation is the Zod schema next to each module function.
 
@@ -15,7 +17,7 @@ There are no accounts. Two credentials exist:
 | Booking reference + last name | Look up, cancel, check in | `:code` in the path + `lastName` in query or body |
 | Stay ID | Everything under `/stays/:stayId` | Path segment |
 
-Failed lookups (404 on `/reservations/:code`, `/check-in`, `/stays/...`) are counted per client IP; above `RATE_LIMIT_PER_MINUTE` (default 30) per minute, these endpoints answer `429` until the window resets. See [Security](08-security-privacy.md).
+Failed lookups (404 on `/reservations/:code`, `/check-in`, `/stays/...`) are counted per client IP; above `RATE_LIMIT_PER_MINUTE` (default 30) per minute, these endpoints answer `429` until the window resets. [Security](08-security-privacy.md) explains the model.
 
 ### Errors
 
