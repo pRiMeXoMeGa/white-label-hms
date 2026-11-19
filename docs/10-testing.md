@@ -76,7 +76,7 @@ The run fails on any browser console error. Screenshots are saved to `test-resul
 | Dining order through the cart (AED 114) | Pass |
 | Laundry express, towels, pillows, maintenance, spa slot, airport transfer | Pass (all 201) |
 | Transfer with 5 passengers in a 3-seat sedan refused | Pass (400) |
-| Auto-progress after ~1 min; laundry still waiting on its 90 s timer | Pass |
+| Auto-progress after ~1 min; laundry still waiting on its 90 s timer (timers at that time: 45 s default, 60 s food, 90 s laundry; all now 10 s) | Pass |
 | Bill AED 2,883.46; each tax checked by hand | Pass |
 | Early check-out: night and future spa released; total AED 1,390.48; room back on sale | Pass |
 | PDF invoice (`%PDF-`, `application/pdf`), feedback, no console errors | Pass |

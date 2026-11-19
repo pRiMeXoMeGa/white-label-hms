@@ -52,7 +52,7 @@ Each record states the context, the decision, the alternatives considered and th
 
 ## ADR-04: Polling instead of push
 
-**Context.** Statuses change every minute or so; the app must feel live.
+**Context.** Statuses change every 10 seconds in the demo (configurable); the app must feel live.
 
 **Decision.** The client polls: requests every 4 s, stay every 15 s, bill every 10 s, paused when the tab is hidden.
 
@@ -74,7 +74,7 @@ Each record states the context, the decision, the alternatives considered and th
 
 **Context.** Two days were not enough for a staff UI, but requests must move through realistic statuses in a demo.
 
-**Decision.** Each service is a state machine; a scheduler moves due requests after `AUTO_ADVANCE_SECONDS` (per-service overrides in env). Spa and transfers complete when their booked time has passed.
+**Decision.** Each service is a state machine; a scheduler checks every 2 seconds and moves due requests after `AUTO_ADVANCE_SECONDS` (10 s by default; per-service overrides in env). Spa and transfers complete when their booked time has passed.
 
 **Alternatives.** A minimal staff page with a passcode; statuses computed on read from timestamps.
 

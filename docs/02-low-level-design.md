@@ -106,7 +106,7 @@ stateDiagram-v2
   cancelled --> [*]
 ```
 
-**Timer resolution:** `delay = AUTO_ADVANCE_SECONDS_<SERVICE> ?? AUTO_ADVANCE_SECONDS`. For `scheduled_end` stages the next transition time is the slot end converted from hotel-local time to UTC.
+**Timer resolution:** `delay = AUTO_ADVANCE_SECONDS_<SERVICE> ?? AUTO_ADVANCE_SECONDS` (default 10 s; the scheduler checks every `AUTO_ADVANCE_TICK_SECONDS`, default 2 s, so a dining order is delivered about 30 s after it is placed). For `scheduled_end` stages the next transition time is the slot end converted from hotel-local time to UTC.
 
 ### Auto-advance algorithm
 

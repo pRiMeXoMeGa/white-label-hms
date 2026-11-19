@@ -18,8 +18,8 @@ const EnvSchema = z.object({
 
   // Auto-progress ("option B"): service requests move to their next status on a timer.
   AUTO_ADVANCE_ENABLED: bool.default('true'),
-  AUTO_ADVANCE_TICK_SECONDS: seconds.default(5),
-  AUTO_ADVANCE_SECONDS: seconds.default(60),
+  AUTO_ADVANCE_TICK_SECONDS: seconds.default(2),
+  AUTO_ADVANCE_SECONDS: seconds.default(10),
   AUTO_ADVANCE_SECONDS_FOOD: seconds.optional(),
   AUTO_ADVANCE_SECONDS_LAUNDRY: seconds.optional(),
   AUTO_ADVANCE_SECONDS_HOUSEKEEPING: seconds.optional(),

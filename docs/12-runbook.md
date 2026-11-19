@@ -36,7 +36,7 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 | "Online check-in opens on …" | Booking starts on a later date | Book for today, or set `EARLY_CHECKIN_DAYS` |
 | "Stay not found. Check your Stay ID." | Typo, or the data was reset | Use Manage booking to recover it; re-book after a reset |
 | "Too many attempts. Try again in N seconds." | 30 failed lookups in a minute from this IP | Wait for the time shown |
-| Statuses not moving | `AUTO_ADVANCE_ENABLED=false`, or long timers | Check env; logs show `scheduler started` with the timer values |
+| Statuses not moving | `AUTO_ADVANCE_ENABLED=false`, or timers changed from the 10 s default | Check env; logs show `scheduler started` with the timer values |
 | Spa shows no free times | Less than 60 minutes' notice, or all 3 rooms taken | Pick a later time or another day |
 | Transfer refused | Less than 2 hours' notice, after check-out day, or too many passengers | Adjust time, day or car |
 | Build fails on Render | Usually a failing test or dependency install | Open the build log; run `npm test` locally |
@@ -46,7 +46,7 @@ Changes to room types or the catalogue in `hotel.json` only reach an existing da
 
 ```json
 {"msg":"database seeded","hotel":"Saffron Bay Hotel & Spa"}
-{"msg":"scheduler started","autoAdvance":true,"tickSeconds":5,"secondsByService":{"food":60,"laundry":90,...}}
+{"msg":"scheduler started","autoAdvance":true,"tickSeconds":2,"secondsByService":{"food":10,"laundry":10,...}}
 {"msg":"listening","url":"http://localhost:3000","env":"production"}
 {"msg":"request","method":"POST","path":"/api/reservations","status":201,"ms":4}
 {"msg":"scheduler tick","advanced":3,"cleaned":0}

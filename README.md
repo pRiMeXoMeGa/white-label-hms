@@ -46,12 +46,12 @@ There is no staff panel in this version. A scheduler plays the hotel team and mo
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `AUTO_ADVANCE_ENABLED` | `true` | Turn the simulated staff on or off |
-| `AUTO_ADVANCE_SECONDS` | `60` | Default time a request stays in each status |
+| `AUTO_ADVANCE_SECONDS` | `10` | Default time a request stays in each status |
 | `AUTO_ADVANCE_SECONDS_FOOD`, `_LAUNDRY`, `_HOUSEKEEPING`, `_AMENITY`, `_MAINTENANCE`, `_SPA`, `_TRANSFER` | default | Per-service override |
-| `AUTO_ADVANCE_TICK_SECONDS` | `5` | How often the scheduler checks for due requests |
+| `AUTO_ADVANCE_TICK_SECONDS` | `2` | How often the scheduler checks for due requests |
 | `HOUSEKEEPING_TURNAROUND_SECONDS` | `300` | A room left dirty at check-out becomes clean after this |
 
-Spa treatments and transfers move to *completed* when their booked time slot ends, not on the timer.
+With the defaults a dining order goes received → preparing → on the way → delivered in about 30 seconds. Spa treatments and transfers move to *completed* when their booked time slot ends, not on the timer.
 
 Other variables (`PORT`, `DATABASE_PATH`, `EARLY_CHECKIN_DAYS`, `RATE_LIMIT_PER_MINUTE`, …) are listed in [`.env.example`](.env.example). `npm start` and `npm run dev` read a `.env` file if there is one.
 

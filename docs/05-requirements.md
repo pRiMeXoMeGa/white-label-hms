@@ -100,7 +100,7 @@ This repository is the **MVP**, built in two days to show the end-to-end guest e
 
 **US-16 Re-brand without code**: Changing `config/hotel.json` changes the name, colours, contact details, policies, taxes, room types, menus, prices, spa and transfer options. Invalid config stops the app at start-up with a clear message.
 
-**US-17 Control simulated staff speed**: `AUTO_ADVANCE_SECONDS` and per-service variables set how long each status lasts.
+**US-17 Control simulated staff speed**: `AUTO_ADVANCE_SECONDS` (default 10 s) and per-service variables set how long each status lasts.
 
 ## 5.5 Business rules (summary)
 
@@ -114,14 +114,14 @@ This repository is the **MVP**, built in two days to show the end-to-end guest e
 | Spa | 10:00–22:00, 30-min slots, 3 rooms, 60 min notice | `hotel.json` |
 | Transfers | 2 h notice; sedan AED 180, SUV AED 260, luxury AED 450 | `hotel.json` |
 | Online check-in window | arrival day | `EARLY_CHECKIN_DAYS` |
-| Status timers | 60 s default | `AUTO_ADVANCE_SECONDS*` |
+| Status timers | 10 s per status (scheduler checks every 2 s) | `AUTO_ADVANCE_SECONDS*`, `AUTO_ADVANCE_TICK_SECONDS` |
 
 ## 5.6 Non-functional requirements
 
 | Area | Requirement (MVP) |
 | --- | --- |
 | Correctness | No double booking, no over-booked spa slot, bill entries never altered (all enforced in the database) |
-| Responsiveness | API p95 under 200 ms for a single hotel; in-stay status visible within 5 s of a change |
+| Responsiveness | API p95 under 200 ms for a single hotel; in-stay status visible within 6 s of becoming due (2 s scheduler + 4 s polling) |
 | Usability | Mobile-first in-stay app; whole journey usable on a 390 px wide phone; keyboard accessible, visible focus |
 | Security | Unguessable Stay ID; brute-force limits; no full card or ID numbers stored; strict security headers |
 | Portability | One Docker image; runs on any Docker host; Node 22.13+ |

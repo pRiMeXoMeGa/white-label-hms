@@ -62,7 +62,7 @@ flowchart TB
       Bill[Billing: folio, tax engine, PDF]
       Out[Checkout]
     end
-    Sched["Scheduler<br/>every AUTO_ADVANCE_TICK_SECONDS"]
+    Sched["Scheduler<br/>every 2 s (AUTO_ADVANCE_TICK_SECONDS)"]
     Cfg[["Hotel config<br/>config/hotel.json"]]
     DB[("SQLite database<br/>WAL mode, /data/hms.sqlite")]
   end
@@ -80,7 +80,7 @@ flowchart TB
 | Web client | All pages, routing, forms, polling for live status | React 19, TypeScript, esbuild, hand-written CSS |
 | HTTP layer | Routing, body parsing (64 KB cap), validation, errors, rate limits, headers, static files | Node `http` module, Zod |
 | Domain modules | Business rules: availability, booking, check-in, requests, spa/transfer slots, billing, checkout | TypeScript, plain functions over an `AppContext` |
-| Scheduler | Simulated staff: advances due requests; cleans rooms after turnaround | `setInterval` in the same process |
+| Scheduler | Simulated staff: every 2 s advances requests whose 10 s status timer has run out; cleans rooms after turnaround | `setInterval` in the same process |
 | Database | Durable state, integrity constraints (no double booking, append-only ledger) | SQLite via built-in `node:sqlite` |
 | Hotel config | White-label surface: brand, policies, taxes, catalogue | JSON validated by Zod at start-up |
 | Invoice renderer | Tax invoice as PDF | pdf-lib |

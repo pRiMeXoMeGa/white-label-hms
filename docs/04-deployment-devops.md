@@ -53,7 +53,7 @@ Commands:
 | Plan | Free |
 | Health check | `GET /api/health` (must return 2xx before traffic switches) |
 | Auto-deploy | On every push to `main` |
-| Env vars | `NODE_ENV=production`, `AUTO_ADVANCE_SECONDS=10` (and `_FOOD`, `_LAUNDRY` = 10), `AUTO_ADVANCE_TICK_SECONDS=2`, `EARLY_CHECKIN_DAYS=0` |
+| Env vars | `NODE_ENV=production`, `AUTO_ADVANCE_SECONDS=10`, `AUTO_ADVANCE_SECONDS_FOOD=10`, `AUTO_ADVANCE_SECONDS_LAUNDRY=10`, `AUTO_ADVANCE_TICK_SECONDS=2`, `EARLY_CHECKIN_DAYS=0` |
 | TLS | Managed by Render (`https://white-label-hms.onrender.com`) |
 
 **First deploy:** Render dashboard → New → Blueprint → select the repo → Apply.
@@ -99,8 +99,8 @@ All variables are optional; defaults are in [`src/server/config/env.ts`](../src/
 | `CLIENT_DIR` | `./dist/client` | Built web client |
 | `RESET_DB_ON_START` | `false` | Delete and re-seed the database on boot |
 | `AUTO_ADVANCE_ENABLED` | `true` | Simulated staff on/off |
-| `AUTO_ADVANCE_TICK_SECONDS` | `5` | Scheduler interval |
-| `AUTO_ADVANCE_SECONDS` | `60` | Default seconds per status |
+| `AUTO_ADVANCE_TICK_SECONDS` | `2` | Scheduler interval |
+| `AUTO_ADVANCE_SECONDS` | `10` | Default seconds per status |
 | `AUTO_ADVANCE_SECONDS_FOOD` … `_TRANSFER` | default | Per-service override (FOOD, LAUNDRY, HOUSEKEEPING, AMENITY, MAINTENANCE, SPA, TRANSFER) |
 | `HOUSEKEEPING_TURNAROUND_SECONDS` | `300` | Dirty room becomes clean after this |
 | `EARLY_CHECKIN_DAYS` | `0` | Online check-in opens N days before arrival |

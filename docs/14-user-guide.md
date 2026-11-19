@@ -56,7 +56,7 @@ The in-stay app is made for your phone. The **Home** tab shows your room, Stay I
 <img src="images/requests-in-progress.png" alt="An order in progress on the home screen" width="260">
 </p>
 
-Every order or booking shows a progress bar and its current status. It updates by itself every few seconds. You can **Cancel** a request until staff start on it (spa until 60 minutes before, transfers until 2 hours before); any charge is taken off your bill.
+Every order or booking shows a progress bar and its current status. In this demo each status moves on after about 10 seconds, and the screen updates by itself. You can **Cancel** a request until staff start on it (spa until 60 minutes before, transfers until 2 hours before); any charge is taken off your bill.
 
 | Service | How to use it | Cost |
 | --- | --- | --- |
@@ -157,7 +157,7 @@ After editing: locally run `npm run seed:reset` and restart; on Render commit an
 
 | Variable | Meaning |
 | --- | --- |
-| `AUTO_ADVANCE_SECONDS` | Seconds each status lasts (default 60) |
+| `AUTO_ADVANCE_SECONDS` | Seconds each status lasts (default 10) |
 | `AUTO_ADVANCE_SECONDS_FOOD`, `_LAUNDRY`, `_HOUSEKEEPING`, `_AMENITY`, `_MAINTENANCE`, `_SPA`, `_TRANSFER` | Per-service override |
 | `AUTO_ADVANCE_ENABLED` | `false` freezes all statuses |
 | `EARLY_CHECKIN_DAYS` | Let guests check in online N days before arrival |
