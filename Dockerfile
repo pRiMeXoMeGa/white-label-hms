@@ -1,6 +1,8 @@
 # ---- build: install, test, bundle ----
 FROM node:22-slim AS build
 WORKDIR /app
+# Playwright is only used by the e2e script; never download browsers into the image.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 COPY package*.json ./
 RUN npm install --no-audit --no-fund
 COPY . .
